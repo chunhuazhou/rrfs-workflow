@@ -20,6 +20,9 @@ if [[ "${prefix}" == "RAP" || "${prefix}" == "HRRR" ]]; then
 elif  [[ "${prefix}" == "RRFS" ]]; then
   nfglevels=66
   nfgsoillevels=9
+elif  [[ "${prefix}" == "MPAS" ]]; then
+  nfglevels=66
+  nfgsoillevels=9
 elif  [[ "${prefix}" == "GFS" ]]; then
   nfglevels=58
   nfgsoillevels=4
