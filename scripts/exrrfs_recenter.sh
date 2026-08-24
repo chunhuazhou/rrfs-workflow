@@ -4,43 +4,60 @@ declare -rx PS4='+${SECONDS}s $(basename ${BASH_SOURCE[0]:-${FUNCNAME[0]:-"Unkno
 set -x
 
 cpreq=${cpreq:-cpreq}
-#prefix=${EXTRN_MDL_SOURCE%_NCO} # remove the trailing '_NCO' if any
-#
-# enter the run directory
-#
+
+#-----------------------------------------------------------------------
+# Enter run directory
+#-----------------------------------------------------------------------
 cd "${DATA}" || exit 1
 
+#-----------------------------------------------------------------------
+# Check whether this is a recenter cycle
+#-----------------------------------------------------------------------
 if [[ " ${RECENTER_CYCS:-99} " != *" ${cyc} "* ]]; then
   echo "INFO: No recentering at this cycle - ${cyc}"
   exit 0
 fi
 
-#
-# determine cold or warm start cycles and use correct ensemble files and different varlist
+#-----------------------------------------------------------------------
+# Configuration
+#-----------------------------------------------------------------------
+export ENS_SIZE="${ENS_SIZE:-30}"
+#export PERTURB_VARS="${PERTURB_VARS:-qv}"
+#export NONNEGATIVE_VARS="${NONNEGATIVE_VARS:-qv}"
+export PERTURB_VARS="rho qv theta u"
+export NONNEGATIVE_VARS="qv"
+export CLIP_NEGATIVE="${CLIP_NEGATIVE:-FALSE}"
+
+echo "============================================================"
+echo "RRFS CONTROL-CENTERED ENSEMBLE"
+echo "============================================================"
+echo "ENS_SIZE          = ${ENS_SIZE}"
+echo "PERTURB_VARS      = ${PERTURB_VARS}"
+echo "NONNEGATIVE_VARS  = ${NONNEGATIVE_VARS}"
+echo "CLIP_NEGATIVE     = ${CLIP_NEGATIVE}"
+echo "============================================================"
+
+#-----------------------------------------------------------------------
+# Verify ensemble input
 #
 if [[ -s "${UMBRELLA_PREP_IC_DATA}/mem001/init.nc" ]]; then
   initial_file='init.nc'
-  varlist1="rho qv qc qr qi qs qg theta u tslb smois"
 else
   initial_file='mpasout.nc'
-  varlist1="pressure_p rho qv qc qr qi qs qg ni nr ng nc nifa nwfa volg surface_pressure theta smois sh2o tslb q2 u uReconstructZonal uReconstructMeridional refl10cm w"
 fi
 
-numvar1=$(wc -w <<< "${varlist1}")
-
-#
-# link ensemble members
-#
 for i in $(seq -w 001 "${ENS_SIZE}"); do
-  ln -snf "${UMBRELLA_PREP_IC_DATA}/mem${i}/${initial_file}" mpasout_mem"${i}".nc
+  member_file="${UMBRELLA_PREP_IC_DATA}/mem${i}/${initial_file}"
+    if [[ ! -s "${member_file}" ]]; then
+        echo "ERROR: Missing ensemble member:"
+        echo "  ${member_file}"
+        exit 1
+    fi
 done
 
 #-----------------------------------------------------------------------
-#
-# link the control member
-#
+# Determine control file
 #-----------------------------------------------------------------------
-#
 controlfile_init="${UMBRELLA_PREP_CONTROL_IC_DATA}/init.nc"
 controlfile_mpasout="${UMBRELLA_PREP_CONTROL_IC_DATA}/mpasout.nc"
 if [[ -s "${controlfile_init}" ]] ; then
@@ -52,29 +69,34 @@ else
   exit 0
 fi
 
-ln -sf "${controlfile}"  ./mpasout_control.nc
-${cpreq} "${controlfile}"  ./mpasout_mean.nc
-#
-# generate the namelist.ens
-#
-cat << EOF > namelist.ens
-&setup
-  ens_size=${ENS_SIZE},
-  filebase='mpasout'
-  filetail(1)='.nc'
-  numvar(1)=${numvar1}
-  varlist(1)="${varlist1}"
-  l_write_mean=.true.
-  l_recenter=.true.
-/
-EOF
 
-# run mpasjedi_enkf.x
-export pgm="gen_ensmean_recenter.exe"
-${cpreq} "${EXECrrfs}"/${pgm} .
-source prep_step
-${MPI_RUN_CMD} ./${pgm} log.out
-# check the status
+echo "Control file: ${controlfile}"
+
+#-----------------------------------------------------------------------
+# Run Python control-centered ensemble generator
+#-----------------------------------------------------------------------
+
+export pgm="create_control_centered_ensemble.py"
+
+python3 "${HOMErrfs}/ush/${pgm}"
+
 export err=$?
 err_chk
-#
+
+#-----------------------------------------------------------------------
+# Verify that all output member files still exist
+#-----------------------------------------------------------------------
+for i in $(seq -w 001 "${ENS_SIZE}"); do
+  member_file="${UMBRELLA_PREP_IC_DATA}/mem${i}/init.nc"
+  if [[ ! -s "${member_file}" ]]; then
+    echo "ERROR: Output member missing after recenter:"
+    echo "  ${member_file}"
+    exit 1
+  fi
+done
+
+echo "============================================================"
+echo "RRFS CONTROL-CENTERED ENSEMBLE COMPLETED"
+echo "============================================================"
+
+exit 0

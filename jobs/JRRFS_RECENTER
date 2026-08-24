@@ -1,8 +1,10 @@
 #!/usr/bin/env bash
+# shellcheck disable=SC2154,SC1091
+
 declare -rx PS4='+${SECONDS}s $(basename ${BASH_SOURCE[0]:-${FUNCNAME[0]:-"Unknown"}})[${LINENO}]: '
 set -x
 date
-#
+
 #-----------------------------------------------------------------------
 # Specify Execution Areas
 #-----------------------------------------------------------------------
@@ -28,19 +30,15 @@ if [[ -d "${DATA}" ]]; then # remove the ${DATA} directory if existed
   rm -rf "${DATA}"
 fi
 mkdir -p "${DATA}"
-#
 #-----------------------------------------------------------------------
 # Define COM directories
 #-----------------------------------------------------------------------
-#
-#export COMINgfs=${COMINgfs:-$(compath.py $envir/gfs/$gfs_ver)}
 export COMINrrfs=${COMINrrfs:-$(compath.py "${envir}/rrfs/${rrfs_ver}")}
 export COMOUT=${COMOUT:-$(compath.py -o "${NET}/${rrfs_ver}/${RUN}.${PDY}/${cyc}")}
 mkdir -p "${COMOUT}/recenter/${WGF}"
-#
-#----------------------------------------
-# Execute the script.
-#----------------------------------------
+#-----------------------------------------------------------------------
+# Execute recentering
+#-----------------------------------------------------------------------
 export pgmout="${DATA}/OUTPUT.$$"
 "${HOMErrfs}"/scripts/exrrfs_recenter.sh
 export err=$?; err_chk
@@ -48,7 +46,6 @@ export err=$?; err_chk
 if [[ -e "${pgmout}" ]]; then
   cat "${pgmout}"
 fi
-#
 #----------------------------------------
 # Remove the Temporary working directory
 #----------------------------------------
