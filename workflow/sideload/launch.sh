@@ -118,9 +118,8 @@ case ${task_id} in
     ;;
   recenter)
     module purge
-    module use "${HOMErrfs}/sorc/RRFS_UTILS/modulefiles"
-    module load "build_${MACHINE}_${COMPILER}"
-    module load "rrfs/${MACHINE}.${COMPILER}"
+    module use "${HOMErrfs}/sorc/RDASApp/modulefiles"
+    module load "RDAS/${MACHINE}.${COMPILER}"
     ;;
   ensmean)
     module purge
