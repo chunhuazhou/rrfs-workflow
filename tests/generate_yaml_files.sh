@@ -1,9 +1,10 @@
 #!/usr/bin/env bash
 # shellcheck disable=SC2016
 rundir="$( cd "$( dirname "${BASH_SOURCE[0]}" )" &> /dev/null && pwd )"
-# generate jedivar.yaml and getkf.yaml
+# generate jedivar.yaml, getkf.yaml, and letkf.yaml
 ../workflow/rocoto_funcs/smart_superyaml.py ../ getkf conus12km
 ../workflow/rocoto_funcs/smart_superyaml.py ../ jedivar conus12km
+../workflow/rocoto_funcs/smart_superyaml.py ../ letkf conus12km
 
 mkdir -p "${rundir}/yaml" "${rundir}/tmp"
 cd "${rundir}/tmp" || exit 1
@@ -11,6 +12,7 @@ cd "${rundir}/tmp" || exit 1
 ln -snf ../../parm/jedivar.yaml .
 ln -snf ../../parm/jedivar.yaml jedivar.pass2.yaml
 ln -snf ../../parm/getkf.yaml .
+ln -snf ../../parm/letkf.yaml .
 ln -snf ../../parm/bec_bump.yaml .
 ln -snf ../../parm/bec_diffusion.yaml .
 ln -snf ../../ush/yaml_finalize .
@@ -96,8 +98,26 @@ export ANALYSIS_VARIABLES="water_vapor_mixing_ratio_wrt_moist_air, air_temperatu
 ./yaml_finalize getkf.yaml  "${rundir}"/yaml/getkf_observer_ana_vars.yaml
 
 #----------------------------------------------------------
+#  letkf.yaml
+#----------------------------------------------------------
+# test letkf observer_solver
+export GETKF_TYPE=observer_solver
+./yaml_finalize letkf.yaml  "${rundir}"/yaml/letkf_observer_solver.yaml
+
+# test letkf solver
+export GETKF_TYPE=solver
+./yaml_finalize letkf.yaml  "${rundir}"/yaml/letkf_solver.yaml
+
+# customize ANALYSIS_VARIABLES
+export ANALYSIS_VARIABLES=12
+./yaml_finalize letkf.yaml  "${rundir}"/yaml/letkf_12_vars.yaml
+
+export ANALYSIS_VARIABLES=5
+
+#----------------------------------------------------------
 #  use convinfo and satinfo to manage observers 
 #----------------------------------------------------------
 export USE_CONV_SAT_INFO=true
 ./yaml_finalize jedivar.yaml  "${rundir}"/yaml/jedivar_conv_sat_info.yaml
 ./yaml_finalize getkf.yaml  "${rundir}"/yaml/getkf_conv_sat_info.yaml
+./yaml_finalize letkf.yaml  "${rundir}"/yaml/letkf_conv_sat_info.yaml

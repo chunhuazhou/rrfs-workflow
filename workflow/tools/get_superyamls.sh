@@ -10,6 +10,7 @@ cd "${parm_dir}" || exit 1
 source "${run_dir}/load_pyDAmonitor.sh"
 ../workflow/rocoto_funcs/smart_superyaml.py  ..  jedivar  "${domain}"
 ../workflow/rocoto_funcs/smart_superyaml.py  ..  getkf    "${domain}"
-echo "jedivar.yam and getkf.yaml are now available under parm/"
+../workflow/rocoto_funcs/smart_superyaml.py  ..  letkf    "${domain}"
+echo "jedivar.yaml, getkf.yaml, and letkf.yaml are now available under parm/"
 pwd
-ls -lrth {jedivar,getkf}.yaml
+ls -lrth {jedivar,getkf,letkf}.yaml

@@ -81,17 +81,40 @@ ${cpreq} "${PARMrrfs}"/streams.atmosphere.getkf streams.atmosphere
 export ANALYSIS_DATE="${CDATE:0:4}-${CDATE:4:2}-${CDATE:6:2}T${CDATE:8:2}:00:00Z"
 CDATEm2=$(${NDATE} -2 "${CDATE}")
 export BEGIN_DATE="${CDATEm2:0:4}-${CDATEm2:4:2}-${CDATEm2:6:2}T${CDATEm2:8:2}:00:00Z"
+# determine which EnKF YAML to use: getkf.yaml or letkf.yaml
+enkf_yaml=${ENKF_YAML:-""}
+if [[ -z "${enkf_yaml}" ]]; then
+  if [[ "${ENKF_SOLVER,,}" == "letkf" || "${ENS_DA_TYPE,,}" == "letkf" ]]; then
+    if [[ -f "${EXPDIR}/config/letkf.yaml" ]]; then
+      enkf_yaml="letkf.yaml"
+    elif [[ -f "${EXPDIR}/config/LETKF.yaml" ]]; then
+      enkf_yaml="LETKF.yaml"
+    fi
+  elif [[ -f "${EXPDIR}/config/letkf.yaml" && ! -f "${EXPDIR}/config/getkf.yaml" ]]; then
+    enkf_yaml="letkf.yaml"
+  elif [[ -f "${EXPDIR}/config/LETKF.yaml" && ! -f "${EXPDIR}/config/getkf.yaml" ]]; then
+    enkf_yaml="LETKF.yaml"
+  fi
+fi
+enkf_yaml=${enkf_yaml:-"getkf.yaml"}
+enkf_base=$(basename "${enkf_yaml}" .yaml)
+enkf_type=${enkf_base,,}  # lowercase: getkf or letkf
 #
-# generate getkf.yaml based on how YAML_GEN_METHOD is set
+# generate enkf yaml based on how YAML_GEN_METHOD is set
 case ${YAML_GEN_METHOD:-1} in
   1) # from ${PARMrrfs}
-    cp "${EXPDIR}/config/getkf.yaml" getkf.org.yaml
+    cp "${EXPDIR}/config/${enkf_yaml}" "${enkf_type}.org.yaml"
     cp "${EXPDIR}/config/convinfo" .
     cp "${EXPDIR}/config/satinfo" .
     cp "${USHrrfs}/hifiyaml4rrfs.py" .
     cp "${USHrrfs}/yamltools4rrfs.py" .
     cp "${USHrrfs}/yaml_finalize" .
-    ./yaml_finalize getkf.org.yaml getkf.yaml
+    ./yaml_finalize "${enkf_type}.org.yaml" "${enkf_type}.yaml"
+    if [[ "${enkf_type}" != "getkf" ]]; then
+      ln -snf "${enkf_type}.yaml" getkf.yaml
+    else
+      ln -snf getkf.yaml letkf.yaml
+    fi
     ;;
   2) # cat together from inside sorc/RDASApp
     source "${USHrrfs}"/yaml_cat_together.sh
@@ -112,12 +135,12 @@ if [[ ${START_TYPE} == "warm" ]] || [[ ${START_TYPE} == "cold" && ${COLDSTART_CY
 
   source prep_step
   ${cpreq} "${EXECrrfs}"/mpasjedi_enkf.x .
-  ${MPI_RUN_CMD} ./mpasjedi_enkf.x getkf.yaml log.out
+  ${MPI_RUN_CMD} ./mpasjedi_enkf.x "${enkf_type}.yaml" log.out
   # check the status
   export err=$?
   err_chk
   #
-  cp "${DATA}"/getkf*.yaml "${COMOUT}/getkf${TYPESTR}/${WGF}"
+  cp "${DATA}"/*.yaml "${COMOUT}/getkf${TYPESTR}/${WGF}" 2>/dev/null || true
   cp "${DATA}"/log.out "${COMOUT}/getkf${TYPESTR}/${WGF}"
 
   # rename ombg to oman for posterior observer jdiag files

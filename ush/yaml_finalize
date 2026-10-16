@@ -12,7 +12,7 @@ if nargs < 2:
     sys.exit(1)
 yfile = args[1]
 yout = args[2]
-ytype = yfile.split(".", 1)[0]  # get the yaml file type: jedivar, getkf, hofx, etc
+ytype = os.path.basename(yfile).split(".", 1)[0].lower()  # get the yaml file type: jedivar, getkf, letkf, hofx, etc
 is_pass2 = "pass2" in yfile
 
 # get environmental variables
@@ -122,7 +122,7 @@ else:
 if ytype == "jedivar":
     modstr = f"state variables: &incvars [{varlist}]"
     hy.modify(data, "_member/state variables", modstr)
-elif ytype == "getkf":
+elif ytype in ["getkf", "letkf"]:
     modstr = f"increment variables: [{varlist}]"
     hy.modify(data, "increment variables", modstr)
 
@@ -142,7 +142,7 @@ driver:
   save posterior mean: true
   do posterior observer: false
 '''
-if ytype == "getkf" and GETKF_TYPE == "solver":
+if ytype in ["getkf", "letkf"] and GETKF_TYPE == "solver":
     block = hy.text_to_yblock(solver_driver_str)
     hy.modify(data, "driver", block)
 
@@ -162,7 +162,7 @@ driver:
     do posterior observer: false
     use control member: false
 '''
-if ytype == "getkf" and GETKF_TYPE == "observer_solver":
+if ytype in ["getkf", "letkf"] and GETKF_TYPE == "observer_solver":
     block = hy.text_to_yblock(observer_solver_driver_str)
     hy.modify(data, "driver", block)
 
@@ -197,7 +197,7 @@ dcObs = yj.get_all_obs(data, shallow=True)
 for name, observer in dcObs.items():
     sname = observer["sname"]
     tmp = data[observer["pos1"]:observer["pos2"]]  # a shallow copy when slicing
-    if ytype == "getkf" and (GETKF_TYPE == "solver" or GETKF_TYPE == "post"):
+    if ytype in ["getkf", "letkf"] and (GETKF_TYPE == "solver" or GETKF_TYPE == "post"):
         yj.getkf_observer_tweak(tmp, GETKF_TYPE)
 
     if use_conv_sat_info:
