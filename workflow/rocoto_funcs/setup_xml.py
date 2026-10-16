@@ -19,7 +19,7 @@ from rocoto_funcs.fcst import fcst
 from rocoto_funcs.smart_fcst_groups import smart_fcst_groups
 from rocoto_funcs.smart_ens_groups import smart_ens_groups
 from rocoto_funcs.save_for_next import save_for_next
-from rocoto_funcs.getkf import getkf
+from rocoto_funcs.getkf import getkf, letkf
 from rocoto_funcs.recenter import recenter
 from rocoto_funcs.ensmean import ensmean
 from rocoto_funcs.mpassit import mpassit
@@ -184,7 +184,9 @@ def setup_xml(HOMErrfs, expdir):
                 recenter(xmlFile, expdir)
             if os.getenv("DO_JEDI", "FALSE").upper() == "TRUE":
                 is_letkf = os.getenv("ENS_DA_TYPE", os.getenv("ENKF_SOLVER", "")).lower() == "letkf"
-                if is_letkf or os.getenv("GETKF_ONESTEP", "FALSE").upper() == "TRUE":
+                if is_letkf:
+                    letkf(xmlFile, expdir)
+                elif os.getenv("GETKF_ONESTEP", "FALSE").upper() == "TRUE":
                     getkf(xmlFile, expdir, 'OBSERVER_SOLVER')
                 else:
                     getkf(xmlFile, expdir, 'OBSERVER')

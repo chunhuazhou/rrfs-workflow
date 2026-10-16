@@ -40,10 +40,10 @@ def getkf(xmlFile, expdir, taskType):
         task_id = "getkf_observer"
     elif taskType.upper() == "SOLVER":
         task_id = "getkf_solver"
-    elif taskType.upper() == "OBSERVER_SOLVER":
-        task_id = "getkf"
     elif taskType.upper() == "POST":
         task_id = "getkf_post"
+    else:  # "OBSERVER_SOLVER", "LETKF", or default single task
+        task_id = "getkf"
     if analysis_variables != '0':
         dcTaskEnv['ANALYSIS_VARIABLES'] = analysis_variables
 
@@ -54,7 +54,7 @@ def getkf(xmlFile, expdir, taskType):
     if realtime.upper() == "TRUE":
         starttime = get_cascade_env(f"STARTTIME_{task_id}".upper())
         timedep = f'\n    <timedep><cyclestr offset="{starttime}">@Y@m@d@H@M00</cyclestr></timedep>'
-    if taskType.upper() == "OBSERVER" or taskType.upper() == "OBSERVER_SOLVER":
+    if taskType.upper() in ["OBSERVER", "OBSERVER_SOLVER", "LETKF", ""]:
         if os.getenv("DO_IODA", "FALSE").upper() == "TRUE":
             iodadep = '<taskdep task="ioda_bufr"/>'
             dcTaskEnv['IODA_BUFR_WGF'] = 'enkf'
@@ -112,3 +112,8 @@ def getkf(xmlFile, expdir, taskType):
     #
     xml_task(xmlFile, expdir, task_id, cycledefs, dcTaskEnv=dcTaskEnv, dependencies=dependencies, command_id="GETKF")
 # end of getkf -----------------------------------------------------------------
+
+
+def letkf(xmlFile, expdir):
+    getkf(xmlFile, expdir, taskType="LETKF")
+

@@ -30,7 +30,7 @@ mkdir -p obs ens jdiag
 #
 # copy observations files
 #
-if [[ ${GETKF_TYPE} == observer*  ]]; then  # observer or observer_solver
+if [[ "${enkf_type}" == "letkf" || ${GETKF_TYPE} == observer*  ]]; then  # letkf, observer, or observer_solver
   source "${USHrrfs}/copy_obs.sh" "getkf"
 else  # solver or post
   ln -snf "${UMBRELLA_GETKF_OBSERVER_DATA}"/jdiag* jdiag/.
@@ -148,13 +148,13 @@ if [[ ${START_TYPE} == "warm" ]] || [[ ${START_TYPE} == "cold" && ${COLDSTART_CY
     done
   fi
 
-  # move jdiag* files to the umbrella directory if observer
-  if [[ ${GETKF_TYPE} == observer* || "${GETKF_TYPE}" == "post" ]]; then
+  # move jdiag* files to the umbrella directory if observer or letkf
+  if [[ "${enkf_type}" == "letkf" || ${GETKF_TYPE} == observer* || "${GETKF_TYPE}" == "post" ]]; then
     cp "${DATA}"/jdiag* "${COMOUT}/getkf${TYPESTR}/${WGF}"
     mv jdiag* "${UMBRELLA_GETKF_DATA}"/.
   fi
-  # move post mean to umbrella if solver
-  if [[ "${GETKF_TYPE}" =~ ^(observer_solver|solver)$ ]]; then
+  # move post mean to umbrella if solver or letkf
+  if [[ "${enkf_type}" == "letkf" || "${GETKF_TYPE}" =~ ^(observer_solver|solver)$ ]]; then
     mv "${DATA}"/data/ens/mem000.nc "${UMBRELLA_GETKF_DATA}"/post_mean.nc
   fi
 

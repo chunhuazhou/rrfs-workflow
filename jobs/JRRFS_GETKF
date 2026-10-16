@@ -20,7 +20,7 @@ export USHrrfs=${USHrrfs:-${HOMErrfs}/ush}
 export UMBRELLA_PREP_IC_DATA=${UMBRELLA_PREP_IC_DATA:-${DATAROOT}/${RUN}_prep_ic_${cyc}_${rrfs_ver}/${WGF}}
 if [[ "${GETKF_ONESTEP^^}" == "TRUE" ]]; then  # observer and solver run in one step, post runs seperately
   observerstr=""
-  if [[ "${GETKF_TYPE}" == "observer_solver" ]]; then
+  if [[ "${GETKF_TYPE}" == "observer_solver" || "${GETKF_TYPE}" == "letkf" || -z "${GETKF_TYPE}" ]]; then
     export TYPESTR=""
   else  # post
     export TYPESTR="_${GETKF_TYPE}"
