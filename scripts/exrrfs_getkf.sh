@@ -110,11 +110,6 @@ case ${YAML_GEN_METHOD:-1} in
     cp "${USHrrfs}/yamltools4rrfs.py" .
     cp "${USHrrfs}/yaml_finalize" .
     ./yaml_finalize "${enkf_type}.org.yaml" "${enkf_type}.yaml"
-    if [[ "${enkf_type}" != "getkf" ]]; then
-      ln -snf "${enkf_type}.yaml" getkf.yaml
-    else
-      ln -snf getkf.yaml letkf.yaml
-    fi
     ;;
   2) # cat together from inside sorc/RDASApp
     source "${USHrrfs}"/yaml_cat_together.sh
@@ -140,7 +135,7 @@ if [[ ${START_TYPE} == "warm" ]] || [[ ${START_TYPE} == "cold" && ${COLDSTART_CY
   export err=$?
   err_chk
   #
-  cp "${DATA}"/*.yaml "${COMOUT}/getkf${TYPESTR}/${WGF}" 2>/dev/null || true
+  cp "${DATA}/${enkf_type}"*.yaml "${COMOUT}/getkf${TYPESTR}/${WGF}"
   cp "${DATA}"/log.out "${COMOUT}/getkf${TYPESTR}/${WGF}"
 
   # rename ombg to oman for posterior observer jdiag files
