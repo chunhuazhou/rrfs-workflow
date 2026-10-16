@@ -83,8 +83,9 @@ CDATEm2=$(${NDATE} -2 "${CDATE}")
 export BEGIN_DATE="${CDATEm2:0:4}-${CDATEm2:4:2}-${CDATEm2:6:2}T${CDATEm2:8:2}:00:00Z"
 # determine which EnKF YAML to use: getkf.yaml or letkf.yaml
 enkf_yaml=${ENKF_YAML:-""}
+enkf_algorithm=${ENKF_TYPE:-${ENS_DA_TYPE:-${ENKF_SOLVER:-""}}}
 if [[ -z "${enkf_yaml}" ]]; then
-  if [[ "${ENKF_SOLVER,,}" == "letkf" || "${ENS_DA_TYPE,,}" == "letkf" ]]; then
+  if [[ "${enkf_algorithm,,}" == "letkf" ]]; then
     if [[ -f "${EXPDIR}/config/letkf.yaml" ]]; then
       enkf_yaml="letkf.yaml"
     elif [[ -f "${EXPDIR}/config/LETKF.yaml" ]]; then

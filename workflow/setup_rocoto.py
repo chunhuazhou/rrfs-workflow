@@ -92,8 +92,8 @@ if os.path.exists(f"{HOMErrfs}/workflow/config.override"):
 if os.getenv("DO_JEDI", 'false').upper() == "TRUE":
     # copy jedivar/getkf/letkf yamls to exp_configdir
     if os.getenv('DO_ENSEMBLE', 'FALSE').upper() == "TRUE":
-        ens_da_type = os.getenv('ENS_DA_TYPE', os.getenv('ENKF_SOLVER', 'getkf')).lower()
-        generate_letkf = os.getenv('GENERATE_LETKF', 'FALSE').upper() == "TRUE" or ens_da_type == "letkf"
+        enkf_type = os.getenv('ENKF_TYPE', os.getenv('ENS_DA_TYPE', os.getenv('ENKF_SOLVER', 'GETKF'))).upper()
+        generate_letkf = os.getenv('GENERATE_LETKF', 'FALSE').upper() == "TRUE" or enkf_type == "LETKF"
 
         if os.getenv('GETKF_ONESTEP', 'FALSE').upper() == "TRUE":
             smart_superyaml(HOMErrfs, 'getkf', mesh, getkf_onestep=True)
@@ -106,7 +106,7 @@ if os.getenv("DO_JEDI", 'false').upper() == "TRUE":
             smart_superyaml(HOMErrfs, 'letkf', mesh)
             shutil.copy(f'{HOMErrfs}/parm/letkf.yaml', f'{exp_configdir}/letkf.yaml')
             shutil.copy(f'{HOMErrfs}/parm/letkf.yaml', f'{exp_configdir}/LETKF.yaml')
-            if ens_da_type == "letkf":
+            if enkf_type == "LETKF":
                 shutil.copy(f'{HOMErrfs}/parm/letkf.yaml', f'{exp_configdir}/getkf.yaml')
         elif os.path.exists(f'{HOMErrfs}/parm/letkf.yaml'):
             shutil.copy(f'{HOMErrfs}/parm/letkf.yaml', f'{exp_configdir}/letkf.yaml')

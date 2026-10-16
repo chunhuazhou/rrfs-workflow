@@ -28,11 +28,12 @@ def getkf(xmlFile, expdir, taskType):
         'COLDSTART_CYCS_DO_DA': os.getenv('COLDSTART_CYCS_DO_DA', 'TRUE').upper(),
         'SAVE_GETKF_ANL': os.getenv('SAVE_GETKF_ANL', 'FALSE').upper(),
         'ENS_SIZE': os.getenv("ENS_SIZE", '5'),
-        'GETKF_TYPE': taskType.lower(),
+        'ENKF_TYPE': 'LETKF' if taskType.upper() == 'LETKF' else os.getenv('ENKF_TYPE', os.getenv('ENS_DA_TYPE', os.getenv('ENKF_SOLVER', 'GETKF'))).upper(),
+        'GETKF_TYPE': '' if taskType.upper() == 'LETKF' else taskType.lower(),
         'USE_CONV_SAT_INFO': os.getenv('USE_CONV_SAT_INFO', 'TRUE').upper(),
         'SAT_USELIST': os.getenv('SAT_USELIST', ''),
         'EMPTY_OBS_SPACE_ACTION': os.getenv('EMPTY_OBS_SPACE_ACTION', 'skip output'),
-        'GETKF_ONESTEP': 'TRUE' if os.getenv('ENS_DA_TYPE', os.getenv('ENKF_SOLVER', '')).lower() == 'letkf' else os.getenv('GETKF_ONESTEP', 'false').upper(),
+        'GETKF_ONESTEP': 'TRUE' if taskType.upper() == 'LETKF' or os.getenv('ENKF_TYPE', os.getenv('ENS_DA_TYPE', os.getenv('ENKF_SOLVER', ''))).upper() == 'LETKF' else os.getenv('GETKF_ONESTEP', 'false').upper(),
         'PIO_STRIDE': os.getenv('PIO_STRIDE', '')
     }
 

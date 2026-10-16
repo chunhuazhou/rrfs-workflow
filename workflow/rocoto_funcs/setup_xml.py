@@ -183,8 +183,8 @@ def setup_xml(HOMErrfs, expdir):
             if os.getenv("DO_RECENTER", "FALSE").upper() == "TRUE":
                 recenter(xmlFile, expdir)
             if os.getenv("DO_JEDI", "FALSE").upper() == "TRUE":
-                is_letkf = os.getenv("ENS_DA_TYPE", os.getenv("ENKF_SOLVER", "")).lower() == "letkf"
-                if is_letkf:
+                enkf_type = os.getenv("ENKF_TYPE", os.getenv("ENS_DA_TYPE", os.getenv("ENKF_SOLVER", "GETKF"))).upper()
+                if enkf_type == "LETKF":
                     letkf(xmlFile, expdir)
                 elif os.getenv("GETKF_ONESTEP", "FALSE").upper() == "TRUE":
                     getkf(xmlFile, expdir, 'OBSERVER_SOLVER')
@@ -192,7 +192,7 @@ def setup_xml(HOMErrfs, expdir):
                     getkf(xmlFile, expdir, 'OBSERVER')
                     getkf(xmlFile, expdir, 'SOLVER')
 
-                if not is_letkf and os.getenv("DO_GETKF_POST", "TRUE").upper() == "TRUE":
+                if enkf_type != "LETKF" and os.getenv("DO_GETKF_POST", "TRUE").upper() == "TRUE":
                     getkf(xmlFile, expdir, 'POST')
             if os.getenv("DO_NONVAR_CLOUD_ANA", "FALSE").upper() == "TRUE":
                 nonvar_cldana(xmlFile, expdir, do_ensemble=True)
