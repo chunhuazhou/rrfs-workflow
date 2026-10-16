@@ -5,7 +5,7 @@
 # shellcheck disable=all
 if (( $# < 1 )); then
   echo "Usage: $(basename $0) YYYYMMDDHH [satbias_path]"
-  echo "YYYYMMDDHH is the cycle before the first JEDIVAR/GETKF_SOLVER task"
+  echo "YYYYMMDDHH is the cycle before the first JEDIVAR/ENKF_SOLVER task"
   echo "satbias_path is optional"
   echo "If satbias_path is missing, \$FIXrrfs/fix/satbias_init will be used"
   exit
@@ -17,11 +17,13 @@ RUN=${NET}
 PDY=${1:0:8}
 cyc=${1:8:2}
 if ${DO_ENSEMBLE:-false}; then
-  dest_path=${COMROOT}/${NET}/${VERSION}/${RUN}.${PDY}/${cyc}/getkf_solver/${WGF}
+  dest_path=${COMROOT}/${NET}/${VERSION}/${RUN}.${PDY}/${cyc}/enkf_solver/${WGF}
+  alt_dest_path=${COMROOT}/${NET}/${VERSION}/${RUN}.${PDY}/${cyc}/getkf_solver/${WGF}
+  mkdir -p "${dest_path}" "${alt_dest_path}"
 else
   dest_path=${COMROOT}/${NET}/${VERSION}/${RUN}.${PDY}/${cyc}/jedivar/${WGF}
+  mkdir -p "${dest_path}"
 fi
-mkdir -p "${dest_path}"
 
 satbias_path=$2
 if [[ -z "${satbias_path}" ]]; then

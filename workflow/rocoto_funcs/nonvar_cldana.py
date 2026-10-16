@@ -65,11 +65,11 @@ def nonvar_cldana(xmlFile, expdir, do_ensemble=False, spinup_mode=0):
     jedidep = ""
     if os.getenv("DO_JEDI", "FALSE").upper() == "TRUE":
         if os.getenv("DO_ENSEMBLE", "FALSE").upper() == "TRUE":
-            enkf_type = os.getenv("ENKF_TYPE", os.getenv("ENS_DA_TYPE", os.getenv("ENKF_SOLVER", "GETKF"))).upper()
-            if enkf_type != "LETKF" and os.getenv("GETKF_ONESTEP", "TRUE").upper() == "FALSE":
-                jedidep = f'\n    <taskdep task="getkf_solver"/>'
+            enkf_onestep = os.getenv("ENKF_ONESTEP", os.getenv("GETKF_ONESTEP", "TRUE")).upper()
+            if enkf_type != "LETKF" and enkf_onestep == "FALSE":
+                jedidep = f'\n    <taskdep task="enkf_solver"/>'
             else:
-                jedidep = f'\n    <taskdep task="getkf"/>'
+                jedidep = f'\n    <taskdep task="enkf"/>'
         elif do_spinup:
             jedidep = f'\n    <taskdep task="jedivar_spinup"/>'
         else:

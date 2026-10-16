@@ -43,13 +43,13 @@ def prep_ic(xmlFile, expdir, do_ensemble=False, spinup_mode=0):
     # determine prep_ic type so that we know where to find correct satbias files
     do_jedi = os.getenv("DO_JEDI", "FALSE").upper()
     if do_ensemble and do_jedi == "TRUE":
-        PREP_IC_TYPE = "getkf"
+        PREP_IC_TYPE = "enkf"
     elif do_jedi == "TRUE":
         PREP_IC_TYPE = "jedivar"
     else:
         PREP_IC_TYPE = "no_da"
     dcTaskEnv['PREP_IC_TYPE'] = PREP_IC_TYPE
-    if PREP_IC_TYPE == "jedivar" or PREP_IC_TYPE == "getkf":
+    if PREP_IC_TYPE in ["jedivar", "enkf", "getkf"]:
         dcTaskEnv['USE_THE_LATEST_SATBIAS'] = os.getenv("USE_THE_LATEST_SATBIAS", "FALSE").upper()
 
     if "global" in os.getenv("MESH_NAME"):

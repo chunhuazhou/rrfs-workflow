@@ -82,7 +82,7 @@ case ${task_id} in
     module load "rrfs/${MACHINE}.${COMPILER}"
     module load nco
     ;;
-  jedivar|hofx|getkf*)
+  jedivar|hofx|getkf*|enkf*)
     module purge
     module use "${HOMErrfs}/sorc/RDASApp/modulefiles"
     module load "RDAS/${MACHINE}.${COMPILER}"

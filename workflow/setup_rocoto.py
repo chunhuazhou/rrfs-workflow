@@ -95,7 +95,7 @@ if os.getenv("DO_JEDI", 'false').upper() == "TRUE":
         enkf_type = os.getenv('ENKF_TYPE', os.getenv('ENS_DA_TYPE', os.getenv('ENKF_SOLVER', 'GETKF'))).upper()
         generate_letkf = os.getenv('GENERATE_LETKF', 'FALSE').upper() == "TRUE" or enkf_type == "LETKF"
 
-        if os.getenv('GETKF_ONESTEP', 'FALSE').upper() == "TRUE":
+        if os.getenv('ENKF_ONESTEP', os.getenv('GETKF_ONESTEP', 'FALSE')).upper() == "TRUE":
             smart_superyaml(HOMErrfs, 'getkf', mesh, getkf_onestep=True)
         else:
             smart_superyaml(HOMErrfs, 'getkf', mesh)
@@ -108,9 +108,14 @@ if os.getenv("DO_JEDI", 'false').upper() == "TRUE":
             shutil.copy(f'{HOMErrfs}/parm/letkf.yaml', f'{exp_configdir}/LETKF.yaml')
             if enkf_type == "LETKF":
                 shutil.copy(f'{HOMErrfs}/parm/letkf.yaml', f'{exp_configdir}/getkf.yaml')
-        elif os.path.exists(f'{HOMErrfs}/parm/letkf.yaml'):
-            shutil.copy(f'{HOMErrfs}/parm/letkf.yaml', f'{exp_configdir}/letkf.yaml')
-            shutil.copy(f'{HOMErrfs}/parm/letkf.yaml', f'{exp_configdir}/LETKF.yaml')
+                shutil.copy(f'{HOMErrfs}/parm/letkf.yaml', f'{exp_configdir}/enkf.yaml')
+            else:
+                shutil.copy(f'{HOMErrfs}/parm/getkf.yaml', f'{exp_configdir}/enkf.yaml')
+        else:
+            shutil.copy(f'{HOMErrfs}/parm/getkf.yaml', f'{exp_configdir}/enkf.yaml')
+            if os.path.exists(f'{HOMErrfs}/parm/letkf.yaml'):
+                shutil.copy(f'{HOMErrfs}/parm/letkf.yaml', f'{exp_configdir}/letkf.yaml')
+                shutil.copy(f'{HOMErrfs}/parm/letkf.yaml', f'{exp_configdir}/LETKF.yaml')
 
         ens_str = "_ens"
     else:

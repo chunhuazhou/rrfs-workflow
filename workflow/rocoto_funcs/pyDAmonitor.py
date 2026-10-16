@@ -47,10 +47,11 @@ def pyDAmonitor(xmlFile, expdir, spinup_mode=0):
             taskdep += f'\n<taskdep task="nonvar_cldana{spinup_str}"/>'
     else:
         enkf_type = os.getenv("ENKF_TYPE", os.getenv("ENS_DA_TYPE", os.getenv("ENKF_SOLVER", "GETKF"))).upper()
-        if enkf_type != "LETKF" and os.getenv("GETKF_ONESTEP", "TRUE").upper() == "FALSE":
-            taskdep = '\n<taskdep task="getkf_solver"/>'
+        enkf_onestep = os.getenv("ENKF_ONESTEP", os.getenv("GETKF_ONESTEP", "TRUE")).upper()
+        if enkf_type != "LETKF" and enkf_onestep == "FALSE":
+            taskdep = '\n<taskdep task="enkf_solver"/>'
         else:
-            taskdep = '\n<taskdep task="getkf"/>'
+            taskdep = '\n<taskdep task="enkf"/>'
     taskdep = textwrap.indent(taskdep, '    ')
     #
     dependencies = f'''

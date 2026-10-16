@@ -24,7 +24,7 @@ HYB_WGT_ENS = os.getenv("HYB_WGT_ENS", "@HYB_WGT_ENS@")
 emptyObsSpaceAction = os.getenv("EMPTY_OBS_SPACE_ACTION", "@emptyObsSpaceAction@")
 
 START_TYPE = os.getenv("START_TYPE", "START_TYPE_NOT_DEFINED")
-GETKF_TYPE = os.getenv("GETKF_TYPE", "TYPE_NOT_DEFINED")
+GETKF_TYPE = os.getenv("ENKF_TASK_TYPE", os.getenv("GETKF_TYPE", "TYPE_NOT_DEFINED"))
 use_conv_sat_info = (os.getenv("USE_CONV_SAT_INFO", "True").upper() != "FALSE")
 SAT_USELIST = os.getenv("SAT_USELIST", "")
 
@@ -122,7 +122,7 @@ else:
 if ytype == "jedivar":
     modstr = f"state variables: &incvars [{varlist}]"
     hy.modify(data, "_member/state variables", modstr)
-elif ytype in ["getkf", "letkf"]:
+elif ytype in ["getkf", "letkf", "enkf"]:
     modstr = f"increment variables: [{varlist}]"
     hy.modify(data, "increment variables", modstr)
 
@@ -142,7 +142,7 @@ driver:
   save posterior mean: true
   do posterior observer: false
 '''
-if ytype == "getkf" and GETKF_TYPE == "solver":
+if ytype in ["getkf", "enkf"] and GETKF_TYPE == "solver":
     block = hy.text_to_yblock(solver_driver_str)
     hy.modify(data, "driver", block)
 
@@ -162,7 +162,7 @@ driver:
     do posterior observer: false
     use control member: false
 '''
-if ytype == "getkf" and GETKF_TYPE == "observer_solver":
+if ytype in ["getkf", "enkf"] and GETKF_TYPE == "observer_solver":
     block = hy.text_to_yblock(observer_solver_driver_str)
     hy.modify(data, "driver", block)
 
@@ -197,7 +197,7 @@ dcObs = yj.get_all_obs(data, shallow=True)
 for name, observer in dcObs.items():
     sname = observer["sname"]
     tmp = data[observer["pos1"]:observer["pos2"]]  # a shallow copy when slicing
-    if ytype == "getkf" and (GETKF_TYPE == "solver" or GETKF_TYPE == "post"):
+    if ytype in ["getkf", "enkf"] and (GETKF_TYPE == "solver" or GETKF_TYPE == "post"):
         yj.getkf_observer_tweak(tmp, GETKF_TYPE)
 
     if use_conv_sat_info:
