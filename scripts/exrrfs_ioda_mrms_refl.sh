@@ -120,7 +120,7 @@ for bigmin_this in ${RADARREFL_TIMELEVEL[@]}; do
   precipdbzvertskip=0
   clearairdbzhorizskip=0
   clearairdbzvertskip=0
-  if [[ "${ASSIM_METHOD}" == "enkf" || "${ASSIM_METHOD}" == "getkf" ]]; then
+  if [[ "${ASSIM_METHOD}" == "getkf" ]]; then
     precipdbzhorizskip=1
     precipdbzvertskip=2
     clearairdbzhorizskip=2

@@ -155,7 +155,7 @@ for index in "${mem_list[@]}"; do # loop through all the members
   #  find the right satbias file
   #
   PREP_IC_TYPE=${PREP_IC_TYPE:-"no_da"}
-  if [[ "${PREP_IC_TYPE}" == "jedivar" ]] || [[ "${PREP_IC_TYPE}" == "enkf" ]] || [[ "${PREP_IC_TYPE}" == "getkf"  ]]; then
+  if [[ "${PREP_IC_TYPE}" == "jedivar" ]] || [[ "${PREP_IC_TYPE}" == "getkf"  ]]; then
     if ( (( spinup_mode == 1 )) && [[ "${START_TYPE}" == "warm" ]] ) || \
        ( (( spinup_mode == -1 )) && [[ "${prod_switch:-"no"}" == "yes" ]] ); then
       # warm start in the spinup session or prod_switch in the prod session
@@ -173,23 +173,11 @@ for index in "${mem_list[@]}"; do # loop through all the members
       CDATEp=$(${NDATE} -${ii} "${CDATE}" )
       PDYii=${CDATEp:0:8}
       cycii=${CDATEp:8:2}
-      search_types=("${PREP_IC_TYPE}")
-      if [[ "${PREP_IC_TYPE}" == "enkf" ]]; then
-        search_types=("enkf" "getkf")
-      elif [[ "${PREP_IC_TYPE}" == "getkf" ]]; then
-        search_types=("getkf" "enkf")
-      fi
-      found_satbias=0
-      for stype in "${search_types[@]}"; do
-        satbias_path=${COMINrrfs}/${RUN}.${PDYii}/${cycii}/${stype}${spinup_str}/${WGF}
-        if compgen -G "${satbias_path}/*satbias*.nc" > /dev/null; then
-          echo "cp ${satbias_path}/*satbias*.nc  ${umbrella_prep_ic_mem}" >> "${CMDFILE}"
-          echo "found satbias from ${satbias_path}"
-          found_satbias=1
-          break
-        fi
-      done
-      if (( found_satbias == 1 )); then
+      satbias_path=${COMINrrfs}/${RUN}.${PDYii}/${cycii}/${PREP_IC_TYPE}${spinup_str}/${WGF}
+      nSatbias=$(find "${satbias_path}"/*satbias*.nc | wc -l)
+      if (( nSatbias > 0 )); then
+        echo "cp ${satbias_path}/*satbias*.nc  ${umbrella_prep_ic_mem}" >> "${CMDFILE}"
+        echo "found satbias from ${satbias_path}"
         break
       fi
     done

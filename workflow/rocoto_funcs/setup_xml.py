@@ -19,7 +19,7 @@ from rocoto_funcs.fcst import fcst
 from rocoto_funcs.smart_fcst_groups import smart_fcst_groups
 from rocoto_funcs.smart_ens_groups import smart_ens_groups
 from rocoto_funcs.save_for_next import save_for_next
-from rocoto_funcs.enkf import enkf, getkf, letkf
+from rocoto_funcs.getkf import getkf, letkf
 from rocoto_funcs.recenter import recenter
 from rocoto_funcs.ensmean import ensmean
 from rocoto_funcs.mpassit import mpassit
@@ -186,14 +186,14 @@ def setup_xml(HOMErrfs, expdir):
                 enkf_type = os.getenv("ENKF_TYPE", os.getenv("ENS_DA_TYPE", os.getenv("ENKF_SOLVER", "GETKF"))).upper()
                 if enkf_type == "LETKF":
                     letkf(xmlFile, expdir)
-                elif os.getenv("ENKF_ONESTEP", os.getenv("GETKF_ONESTEP", "FALSE")).upper() == "TRUE":
-                    enkf(xmlFile, expdir, 'OBSERVER_SOLVER')
+                elif os.getenv("GETKF_ONESTEP", "FALSE").upper() == "TRUE":
+                    getkf(xmlFile, expdir, 'OBSERVER_SOLVER')
                 else:
-                    enkf(xmlFile, expdir, 'OBSERVER')
-                    enkf(xmlFile, expdir, 'SOLVER')
+                    getkf(xmlFile, expdir, 'OBSERVER')
+                    getkf(xmlFile, expdir, 'SOLVER')
 
-                if enkf_type != "LETKF" and os.getenv("DO_ENKF_POST", os.getenv("DO_GETKF_POST", "TRUE")).upper() == "TRUE":
-                    enkf(xmlFile, expdir, 'POST')
+                if enkf_type != "LETKF" and os.getenv("DO_GETKF_POST", "TRUE").upper() == "TRUE":
+                    getkf(xmlFile, expdir, 'POST')
             if os.getenv("DO_NONVAR_CLOUD_ANA", "FALSE").upper() == "TRUE":
                 nonvar_cldana(xmlFile, expdir, do_ensemble=True)
             if os.getenv("DO_PYDAMONITOR", "FALSE").upper() == "TRUE":

@@ -53,10 +53,10 @@ with open(f'{expdir}/{NET}.xml') as infile:
             CYC_INTERVAL = get_value(line)
         elif "FCST_LEN_HRS_CYCLES" in line:
             FCST_LEN_HRS_CYCLES = get_value(line)
-        elif '<task name="getkf"' in line or '<task name="enkf"' in line:
-            getkf = 1  # one step getkf/enkf
-        elif '<task name="getkf_observer"' in line or '<task name="enkf_observer"' in line:
-            getkf = 2  # two steps getkf/enkf
+        elif '<task name="getkf"' in line:
+            getkf = 1  # one step getkf
+        elif '<task name="getkf_observer"' in line:
+            getkf = 2  # two steps getkf
         elif "STATIC_BEC_MODEL" in line:
             STATIC_BEC_MODEL = get_value(line)
         elif "SAT_USELIST" in line:
@@ -176,12 +176,7 @@ elif not dcSatInfo:
 # generate the yaml file on the fly
 #
 if getkf:
-    if os.path.exists(f"{expdir}/config/letkf.yaml"):
-        yfile = f"{expdir}/config/letkf.yaml"
-    elif os.path.exists(f"{expdir}/config/enkf.yaml"):
-        yfile = f"{expdir}/config/enkf.yaml"
-    else:
-        yfile = f"{expdir}/config/getkf.yaml"
+    yfile = f"{expdir}/config/getkf.yaml"
 else:
     yfile = f"{expdir}/config/jedivar.yaml"
 # determine the output file

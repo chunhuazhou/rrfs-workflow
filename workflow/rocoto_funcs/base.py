@@ -304,30 +304,14 @@ def get_cascade_env(env_name):
     if env_value is not None:
         return env_value
 
-    if "ENKF" in env_name:
-        alt_value = os.getenv(env_name.replace("ENKF", "GETKF"))
-        if alt_value is not None:
-            return alt_value
-    elif "GETKF" in env_name:
-        alt_value = os.getenv(env_name.replace("GETKF", "ENKF"))
-        if alt_value is not None:
-            return alt_value
-
     while seperator in revStr:
         ra, rb = revStr.split(seperator, 1)  # only split once
         new_name = rb[::-1]
         env_value = os.getenv(new_name)
         if env_value is not None:
             return env_value
-        if "ENKF" in new_name:
-            alt_value = os.getenv(new_name.replace("ENKF", "GETKF"))
-            if alt_value is not None:
-                return alt_value
-        elif "GETKF" in new_name:
-            alt_value = os.getenv(new_name.replace("GETKF", "ENKF"))
-            if alt_value is not None:
-                return alt_value
-        revStr = rb
+        else:
+            revStr = rb
 
     # if no env variable is defined in the cascasde
     return f'the cascade env {env_name} not defined'

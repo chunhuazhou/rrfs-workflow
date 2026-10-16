@@ -108,15 +108,13 @@ changesets = {
 modify(myfile, changesets)
 
 # tweak 9 ----------------------------------------------------------
+myfile = "scripts/exrrfs_getkf.sh"
 changesets = {
     "mpasout": "restart",
     "START_TYPE='cold'": "START_TYPE='cold'\n  do_restart='false'",
     "do_DAcycling='true'": "do_DAcycling='true'\n  do_restart='true'",
 }
-if os.path.exists("scripts/exrrfs_enkf.sh"):
-    modify("scripts/exrrfs_enkf.sh", changesets)
-elif os.path.exists("scripts/exrrfs_getkf.sh"):
-    modify("scripts/exrrfs_getkf.sh", changesets)
+modify(myfile, changesets)
 
 # tweak 10, 11, 12, 13, 14, 15 -------------------------------------
 myfile = "scripts/exrrfs_prep_ic.sh"

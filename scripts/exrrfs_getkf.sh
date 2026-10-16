@@ -1,1 +1,171 @@
-exrrfs_enkf.sh
+#!/usr/bin/env bash
+# shellcheck disable=SC1091,SC2153,SC2154,SC2034
+declare -rx PS4='+${SECONDS}s $(basename ${BASH_SOURCE[0]:-${FUNCNAME[0]:-"Unknown"}})[${LINENO}]: '
+set -x
+
+cpreq=${cpreq:-cpreq}
+prefix=${EXTRN_MDL_SOURCE%_NCO} # remove the trailing '_NCO' if any
+cd "${DATA}" || exit 1
+
+start_time=$(date -d "${CDATE:0:8} ${CDATE:8:2}" +%Y-%m-%d_%H:%M:%S)
+timestr=$(date -d "${CDATE:0:8} ${CDATE:8:2}" +%Y-%m-%d_%H.%M.%S)
+time_min="${subcyc:-00}"
+#
+ln -snf "${FIXrrfs}/physics/${PHYSICS_SUITE}"/* .
+ln -snf "${FIXrrfs}/${MESH_NAME}/${MESH_NAME}.ugwp_oro_data.nc" ./ugwp_oro_data.nc
+zeta_levels=${EXPDIR}/config/ZETA_LEVELS.txt
+nlevel=$(wc -l < "${zeta_levels}")
+ln -snf "${FIXrrfs}/${MESH_NAME}/${MESH_NAME}.invariant.nc_L${nlevel}_${prefix}" ./invariant.nc
+mkdir -p graphinfo stream_list
+ln -snf "${FIXrrfs}/${MESH_NAME}"/graphinfo/* graphinfo/
+${cpreq} "${FIXrrfs}/stream_list/${PHYSICS_SUITE}"/* stream_list/
+${cpreq} "${FIXrrfs}"/jedi/obsop_name_map.yaml .
+${cpreq} "${FIXrrfs}"/jedi/keptvars.yaml .
+${cpreq} "${FIXrrfs}"/jedi/geovars.yaml .
+#
+# create data directory 
+#
+mkdir -p data; cd data || exit 1
+mkdir -p obs ens jdiag
+#
+# copy observations files
+#
+if [[ "${enkf_type}" == "letkf" || ${GETKF_TYPE} == observer*  ]]; then  # letkf, observer, or observer_solver
+  source "${USHrrfs}/copy_obs.sh" "getkf"
+else  # solver or post
+  ln -snf "${UMBRELLA_GETKF_OBSERVER_DATA}"/jdiag* jdiag/.
+fi
+#
+# determine whether to begin new cycles and link correct ensembles
+#
+do_DAcycling='false'
+if [[ -r "${UMBRELLA_PREP_IC_DATA}/mem001/init.nc" ]]; then
+  export START_TYPE='cold'
+  initial_file='init.nc'
+else
+  export START_TYPE='warm'
+  initial_file='mpasout.nc'
+fi
+# if cold_start or not do_radar_ref, remove refl10cm and w from stream_list.atmosphere.analysis
+if [[ "${START_TYPE}" == "cold"  ]] || [[ ${DO_RADAR_REF^^} == "FALSE" ]]; then
+  sed -i '$d;N;$d' ../stream_list/stream_list.atmosphere.analysis
+fi
+# link ensembles to data/ens/
+for i in $(seq -w 001 "${ENS_SIZE}"); do
+  ln -snf "${UMBRELLA_PREP_IC_DATA}/mem${i}/${initial_file}" "ens/mem${i}.nc"
+done
+#
+# enter the run directory again
+#
+cd "${DATA}" || exit 1
+#
+# generate namelist, streams, and getkf.yaml on the fly
+run_duration=1:00:00
+physics_suite=${PHYSICS_SUITE:-'mesoscale_reference'}
+lsm_scheme=${LSM_SCHEME:-'sf_ruc'}
+nsoillevels=${NSOIL_LEVELS:-9}
+jedi_da=true #true
+pio_stride=${PIO_STRIDE:-${PPN}}
+pio_num_iotasks=$(( NODES * PPN / pio_stride ))
+do_sppt=${DO_SPPT:-'false'} 
+
+# We set dt, substeps, radt values to avoid errors in reading namelist.atmosphere
+# but they will NOT be used since no model integration in DA steps
+dt=60
+substeps=2
+radt=30
+
+file_content=$(< "${PARMrrfs}/${physics_suite}/namelist.atmosphere") # read in all content
+eval "echo \"${file_content}\"" > namelist.atmosphere
+${cpreq} "${PARMrrfs}"/streams.atmosphere.getkf streams.atmosphere
+export ANALYSIS_DATE="${CDATE:0:4}-${CDATE:4:2}-${CDATE:6:2}T${CDATE:8:2}:00:00Z"
+CDATEm2=$(${NDATE} -2 "${CDATE}")
+export BEGIN_DATE="${CDATEm2:0:4}-${CDATEm2:4:2}-${CDATEm2:6:2}T${CDATEm2:8:2}:00:00Z"
+# determine which EnKF YAML to use: getkf.yaml or letkf.yaml
+enkf_yaml=${ENKF_YAML:-""}
+enkf_algorithm=${ENKF_TYPE:-${ENS_DA_TYPE:-${ENKF_SOLVER:-""}}}
+if [[ -z "${enkf_yaml}" ]]; then
+  if [[ "${enkf_algorithm,,}" == "letkf" ]]; then
+    if [[ -f "${EXPDIR}/config/letkf.yaml" ]]; then
+      enkf_yaml="letkf.yaml"
+    elif [[ -f "${EXPDIR}/config/LETKF.yaml" ]]; then
+      enkf_yaml="LETKF.yaml"
+    fi
+  elif [[ -f "${EXPDIR}/config/letkf.yaml" && ! -f "${EXPDIR}/config/getkf.yaml" ]]; then
+    enkf_yaml="letkf.yaml"
+  elif [[ -f "${EXPDIR}/config/LETKF.yaml" && ! -f "${EXPDIR}/config/getkf.yaml" ]]; then
+    enkf_yaml="LETKF.yaml"
+  fi
+fi
+enkf_yaml=${enkf_yaml:-"getkf.yaml"}
+enkf_base=$(basename "${enkf_yaml}" .yaml)
+enkf_type=${enkf_base,,}  # lowercase: getkf or letkf
+#
+# generate enkf yaml based on how YAML_GEN_METHOD is set
+case ${YAML_GEN_METHOD:-1} in
+  1) # from ${PARMrrfs}
+    cp "${EXPDIR}/config/${enkf_yaml}" "${enkf_type}.org.yaml"
+    cp "${EXPDIR}/config/convinfo" .
+    cp "${EXPDIR}/config/satinfo" .
+    cp "${USHrrfs}/hifiyaml4rrfs.py" .
+    cp "${USHrrfs}/yamltools4rrfs.py" .
+    cp "${USHrrfs}/yaml_finalize" .
+    ./yaml_finalize "${enkf_type}.org.yaml" "${enkf_type}.yaml"
+    ;;
+  2) # cat together from inside sorc/RDASApp
+    source "${USHrrfs}"/yaml_cat_together.sh
+    ;;
+  3) # JCB
+    source "${USHrrfs}"/yaml_jcb.sh
+    ;;
+  *)
+    echo "unknown YAML_GEN_METHOD:${YAML_GEN_METHOD}"
+    err_exit
+    ;;
+esac
+
+if [[ ${START_TYPE} == "warm" ]] || [[ ${START_TYPE} == "cold" && ${COLDSTART_CYCS_DO_DA^^} == "TRUE" ]]; then
+  # run mpasjedi_enkf.x
+  #export OOPS_TRACE=1
+  export OMP_NUM_THREADS=1
+
+  source prep_step
+  ${cpreq} "${EXECrrfs}"/mpasjedi_enkf.x .
+  ${MPI_RUN_CMD} ./mpasjedi_enkf.x "${enkf_type}.yaml" log.out
+  # check the status
+  export err=$?
+  err_chk
+  #
+  cp "${DATA}/${enkf_type}"*.yaml "${COMOUT}/getkf${TYPESTR}/${WGF}"
+  cp "${DATA}"/log.out "${COMOUT}/getkf${TYPESTR}/${WGF}"
+
+  # rename ombg to oman for posterior observer jdiag files
+  if [[ "${GETKF_TYPE}" == "post" ]]; then
+    for jdiag in "${DATA}"/jdiag*; do
+      jdiag_tmp="${jdiag%.nc}_tmp.nc"
+      nccopy -k 3 "${jdiag}" "${jdiag_tmp}"
+      ncrename -g ombg,oman "${jdiag_tmp}"
+      mv "${jdiag_tmp}" "${jdiag}"
+    done
+  fi
+
+  # move jdiag* files to the umbrella directory if observer or letkf
+  if [[ "${enkf_type}" == "letkf" || ${GETKF_TYPE} == observer* || "${GETKF_TYPE}" == "post" ]]; then
+    cp "${DATA}"/jdiag* "${COMOUT}/getkf${TYPESTR}/${WGF}"
+    mv jdiag* "${UMBRELLA_GETKF_DATA}"/.
+  fi
+  # move post mean to umbrella if solver or letkf
+  if [[ "${enkf_type}" == "letkf" || "${GETKF_TYPE}" =~ ^(observer_solver|solver)$ ]]; then
+    mv "${DATA}"/data/ens/mem000.nc "${UMBRELLA_GETKF_DATA}"/post_mean.nc
+  fi
+
+  # Save analysis files if requested
+  if [[ "${GETKF_TYPE}" == "post" && "${SAVE_GETKF_ANL^^}" == "TRUE" ]]; then
+    for mem in $(seq -w 001 "${ENS_SIZE}"); do
+      cp -rL "${DATA}/data/ens/mem${mem}.nc"  "${COMOUT}/getkf_${GETKF_TYPE}/${WGF}/mem${mem}.nc"
+    done
+  fi
+
+else
+  echo "INFO: No DA at the cold start cycle"
+fi
