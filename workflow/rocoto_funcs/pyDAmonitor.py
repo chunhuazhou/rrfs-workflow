@@ -46,7 +46,8 @@ def pyDAmonitor(xmlFile, expdir, spinup_mode=0):
         if do_nonvar_cloud_ana == "TRUE":
             taskdep += f'\n<taskdep task="nonvar_cldana{spinup_str}"/>'
     else:
-        if os.getenv("GETKF_ONESTEP", "TRUE").upper() == "FALSE":
+        is_letkf = os.getenv("ENS_DA_TYPE", os.getenv("ENKF_SOLVER", "")).lower() == "letkf"
+        if not is_letkf and os.getenv("GETKF_ONESTEP", "TRUE").upper() == "FALSE":
             taskdep = '\n<taskdep task="getkf_solver"/>'
         else:
             taskdep = '\n<taskdep task="getkf"/>'

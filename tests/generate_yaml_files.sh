@@ -98,15 +98,9 @@ export ANALYSIS_VARIABLES="water_vapor_mixing_ratio_wrt_moist_air, air_temperatu
 ./yaml_finalize getkf.yaml  "${rundir}"/yaml/getkf_observer_ana_vars.yaml
 
 #----------------------------------------------------------
-#  letkf.yaml
+#  letkf.yaml (one-step only)
 #----------------------------------------------------------
-# test letkf observer_solver
-export GETKF_TYPE=observer_solver
-./yaml_finalize letkf.yaml  "${rundir}"/yaml/letkf_observer_solver.yaml
-
-# test letkf solver
-export GETKF_TYPE=solver
-./yaml_finalize letkf.yaml  "${rundir}"/yaml/letkf_solver.yaml
+./yaml_finalize letkf.yaml  "${rundir}"/yaml/letkf.yaml
 
 # customize ANALYSIS_VARIABLES
 export ANALYSIS_VARIABLES=12

@@ -132,7 +132,8 @@ def fcst(xmlFile, expdir, do_ensemble=False, dcEnsGrpInfo=None, do_spinup=False,
     if os.getenv("DO_JEDI", "FALSE").upper() == "TRUE":
         do_da = True
         if os.getenv("DO_ENSEMBLE", "FALSE").upper() == "TRUE":
-            if os.getenv("GETKF_ONESTEP", "TRUE").upper() == "FALSE":
+            is_letkf = os.getenv("ENS_DA_TYPE", os.getenv("ENKF_SOLVER", "")).lower() == "letkf"
+            if not is_letkf and os.getenv("GETKF_ONESTEP", "TRUE").upper() == "FALSE":
                 jedidep = f'\n    <taskdep task="getkf_solver"/>'
             else:
                 jedidep = f'\n    <taskdep task="getkf"/>'
