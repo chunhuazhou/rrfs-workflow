@@ -90,6 +90,9 @@ def smart_superyaml(HOMErrfs, ytype, mesh, getkf_onestep=False):
                                 target_idx = j
                                 break
                         if target_idx is not None:
+                            if vert_anchor == "SfcWindVertObsLoc":
+                                indent = data[p1 + target_idx][:len(data[p1 + target_idx]) - len(data[p1 + target_idx].lstrip())]
+                                data[p1 + target_idx] = f"{indent}lengthscale: 50e3"
                             abs_insert = p1 + target_idx + 1
                             vert_line = f"         - <<: *{vert_anchor}"
                             data.insert(abs_insert, vert_line)
