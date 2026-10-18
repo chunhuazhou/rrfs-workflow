@@ -5,6 +5,8 @@ set -x
 
 cpreq=${cpreq:-cpreq}
 prefix=${EXTRN_MDL_SOURCE%_NCO} # remove the trailing '_NCO' if any
+enkf_type=${ENKF_TYPE:-"GETKF"}
+enkf_type=${enkf_type,,}
 cd "${DATA}" || exit 1
 
 start_time=$(date -d "${CDATE:0:8} ${CDATE:8:2}" +%Y-%m-%d_%H:%M:%S)
@@ -81,25 +83,7 @@ ${cpreq} "${PARMrrfs}"/streams.atmosphere.getkf streams.atmosphere
 export ANALYSIS_DATE="${CDATE:0:4}-${CDATE:4:2}-${CDATE:6:2}T${CDATE:8:2}:00:00Z"
 CDATEm2=$(${NDATE} -2 "${CDATE}")
 export BEGIN_DATE="${CDATEm2:0:4}-${CDATEm2:4:2}-${CDATEm2:6:2}T${CDATEm2:8:2}:00:00Z"
-# determine which EnKF YAML to use: getkf.yaml or letkf.yaml
-enkf_yaml=${ENKF_YAML:-""}
-enkf_algorithm=${ENKF_TYPE:-${ENS_DA_TYPE:-${ENKF_SOLVER:-""}}}
-if [[ -z "${enkf_yaml}" ]]; then
-  if [[ "${enkf_algorithm,,}" == "letkf" ]]; then
-    if [[ -f "${EXPDIR}/config/letkf.yaml" ]]; then
-      enkf_yaml="letkf.yaml"
-    elif [[ -f "${EXPDIR}/config/LETKF.yaml" ]]; then
-      enkf_yaml="LETKF.yaml"
-    fi
-  elif [[ -f "${EXPDIR}/config/letkf.yaml" && ! -f "${EXPDIR}/config/getkf.yaml" ]]; then
-    enkf_yaml="letkf.yaml"
-  elif [[ -f "${EXPDIR}/config/LETKF.yaml" && ! -f "${EXPDIR}/config/getkf.yaml" ]]; then
-    enkf_yaml="LETKF.yaml"
-  fi
-fi
-enkf_yaml=${enkf_yaml:-"getkf.yaml"}
-enkf_base=$(basename "${enkf_yaml}" .yaml)
-enkf_type=${enkf_base,,}  # lowercase: getkf or letkf
+enkf_yaml=${ENKF_YAML:-"${enkf_type}.yaml"}
 #
 # generate enkf yaml based on how YAML_GEN_METHOD is set
 case ${YAML_GEN_METHOD:-1} in
