@@ -93,24 +93,22 @@ if os.getenv("DO_JEDI", 'false').upper() == "TRUE":
     # copy jedivar/getkf/letkf yamls to exp_configdir
     if os.getenv('DO_ENSEMBLE', 'FALSE').upper() == "TRUE":
         enkf_type = os.getenv('ENKF_TYPE', os.getenv('ENS_DA_TYPE', os.getenv('ENKF_SOLVER', 'GETKF'))).upper()
-        generate_letkf = os.getenv('GENERATE_LETKF', 'FALSE').upper() == "TRUE" or enkf_type == "LETKF"
 
-        if os.getenv('GETKF_ONESTEP', 'FALSE').upper() == "TRUE":
-            smart_superyaml(HOMErrfs, 'getkf', mesh, getkf_onestep=True)
-        else:
-            smart_superyaml(HOMErrfs, 'getkf', mesh)
-
-        shutil.copy(f'{HOMErrfs}/parm/getkf.yaml', f'{exp_configdir}/getkf.yaml')
-
-        if generate_letkf:
+        if enkf_type == "LETKF":
             smart_superyaml(HOMErrfs, 'letkf', mesh)
             shutil.copy(f'{HOMErrfs}/parm/letkf.yaml', f'{exp_configdir}/letkf.yaml')
-            shutil.copy(f'{HOMErrfs}/parm/letkf.yaml', f'{exp_configdir}/LETKF.yaml')
-            if enkf_type == "LETKF":
-                shutil.copy(f'{HOMErrfs}/parm/letkf.yaml', f'{exp_configdir}/getkf.yaml')
-        elif os.path.exists(f'{HOMErrfs}/parm/letkf.yaml'):
-            shutil.copy(f'{HOMErrfs}/parm/letkf.yaml', f'{exp_configdir}/letkf.yaml')
-            shutil.copy(f'{HOMErrfs}/parm/letkf.yaml', f'{exp_configdir}/LETKF.yaml')
+            for old_yaml in [f'{exp_configdir}/getkf.yaml', f'{exp_configdir}/LETKF.yaml']:
+                if os.path.exists(old_yaml):
+                    os.remove(old_yaml)
+        else:
+            if os.getenv('GETKF_ONESTEP', 'FALSE').upper() == "TRUE":
+                smart_superyaml(HOMErrfs, 'getkf', mesh, getkf_onestep=True)
+            else:
+                smart_superyaml(HOMErrfs, 'getkf', mesh)
+            shutil.copy(f'{HOMErrfs}/parm/getkf.yaml', f'{exp_configdir}/getkf.yaml')
+            for old_yaml in [f'{exp_configdir}/letkf.yaml', f'{exp_configdir}/LETKF.yaml']:
+                if os.path.exists(old_yaml):
+                    os.remove(old_yaml)
 
         ens_str = "_ens"
     else:
