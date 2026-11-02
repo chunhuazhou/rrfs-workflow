@@ -214,6 +214,10 @@ def setup_xml(HOMErrfs, expdir):
                 for index, dcGrpInfo in enumerate(listPostGrpInfo):
                     mpassit(xmlFile, expdir, index, dcGrpInfo, do_ensemble=True, do_ensmean_post=True)
                     upp(xmlFile, expdir, index, dcGrpInfo, do_ensemble=True, do_ensmean_post=True)
+            if os.getenv("DO_GRAPHICS", 'FALSE').upper() == "TRUE":
+                graphics(xmlFile, expdir, do_ensemble=True)
+                if not os.path.exists(f"{HOMErrfs}/workflow/sideload/pygraf"):
+                    print("  *** DO_GRAPHICS=true but pygraf not cloned yet!!! ***\n  run `tools/clone_pygraf.sh` first\n")
 
 # ---------------------------------------------------------------------------
         if os.getenv("DO_CLEAN", 'FALSE').upper() == "TRUE":  # write out the clean task if needed, usually for realtime runs
