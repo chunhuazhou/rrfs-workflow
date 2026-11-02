@@ -15,7 +15,7 @@ def graphics(xmlFile, expdir, do_ensemble=False):
 <metatask name="{meta_id}">
 <var name="tile">{tiles}</var>'''
     meta_end = f'</metatask>\n'
-    cycledefs = 'prod'
+    cycledefs = os.getenv('CYCLEDEF_GRAPHICS', 'prod')
     #
     # Task-specific EnVars beyond the task_common_vars
     dcTaskEnv = {
