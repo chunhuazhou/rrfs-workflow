@@ -7,7 +7,13 @@ pygraf_hash=${PYGRAF_HASH:-""}
 toolsdir="$( cd "$( dirname "${BASH_SOURCE[0]}" )" &> /dev/null && pwd )"
 cd "${toolsdir}/../sideload"
 if [[ -d pygraf ]]; then
-  echo "pygraf/ already cloned, no actions."
+  echo "pygraf/ already cloned, updating to latest ${pygraf_branch}..."
+  cd pygraf
+  if [[ -n "${pygraf_hash}" ]]; then
+    git fetch origin && git checkout "${pygraf_hash}"
+  else
+    git fetch origin "${pygraf_branch}" && git checkout "${pygraf_branch}" && git pull origin "${pygraf_branch}"
+  fi
 else
   which git-lfs 2>/dev/null ||  module load git-lfs
   set -x
