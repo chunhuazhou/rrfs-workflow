@@ -48,7 +48,7 @@ def smart_superyaml(HOMErrfs, ytype, mesh, getkf_onestep=False):
             # GETKF observer_solver or LETKF: change observer distribution to Halo
             if getkf_onestep or ytype == "letkf":
                 for i, line in enumerate(tmp):
-                    if line.strip() == "distribution:":
+                    if line.split("#")[0].strip() == "distribution:":  # ignore trailing comments
                         indent = line[:len(line) - len(line.lstrip())]
                         halo_val = "50e3" if name == "refl10cm" else "500e3"
                         if i + 2 < len(tmp) and "halo size:" in tmp[i + 2]:
