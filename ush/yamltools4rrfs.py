@@ -230,10 +230,46 @@ def generate_cldamt_anchors(dcSatInfo, dcCldRadInfo, mysis, obstype, spaces=""):
     return text
 
 
+# ---------------------------------------------------------------------------
+# Check if a jdiag NetCDF file exists and contains observations
+# ---------------------------------------------------------------------------
+def is_valid_jdiag(fpath):
+    if not os.path.isfile(fpath) or os.path.getsize(fpath) == 0:
+        return False
+    # Check dimension via netCDF4 if available
+    try:
+        import netCDF4 as nc
+        with nc.Dataset(fpath, "r") as ds:
+            for dim in ("Location", "nlocs"):
+                if dim in ds.dimensions:
+                    return len(ds.dimensions[dim]) > 0
+            return True
+    except Exception:
+        pass
+    # Check dimension via ncdump -h
+    try:
+        import subprocess
+        res = subprocess.run(["ncdump", "-h", fpath], capture_output=True, text=True, timeout=5)
+        if res.returncode == 0:
+            pattern = re.compile(
+                r"^\s*(?:Location|nlocs)\s*=\s*(?:UNLIMITED\s*;\s*//\s*\((\d+)\s+currently\)|(\d+))",
+                re.IGNORECASE
+            )
+            for line in res.stdout.splitlines():
+                m = pattern.search(line)
+                if m:
+                    count = int(m.group(1) or m.group(2))
+                    return count > 0
+            return True
+    except Exception:
+        pass
+    return True
+
+
 # tweak observers for getkf solver or post:
 #  1. if solver, change the distribution from RoundRobin to Halo
 #  2. transfer the obsdataout obsfile to obsdatain
-#  3. if post, remove the "reduce obs space" actions and "temporal thinning" filters
+#  3. if post, check and drop empty or missing observers
 #
 # WARNING: This function modifies `data` IN-PLACE.
 #   You MUST pass the actual list object, NOT a slice.
@@ -250,6 +286,17 @@ def getkf_observer_tweak(data, getkf_type):
     pos, _ = hy.get_start_pos(data, "obsdatain/engine/obsfile")
     spaces = hy.strip_indentations(data[pos])[1]
     data[pos] = f"{spaces}obsfile: data/jdiag/{diagfile}"
+
+    # for getkf post: check if prior jdiag exists and has observations
+    if getkf_type == "post":
+        jdiag_dir = "data/jdiag"
+        diagpath = os.path.join(jdiag_dir, diagfile)
+        if os.path.isdir(jdiag_dir) and any(f.endswith((".nc", ".nc4")) for f in os.listdir(jdiag_dir)):
+            if not is_valid_jdiag(diagpath):
+                sys.stderr.write(f"INFO: GETKF post: dropping empty/missing observer {diagfile}\n")
+                return False
+
+    return True
 
 
 # get all filters given a line range(pos1, pos2)
