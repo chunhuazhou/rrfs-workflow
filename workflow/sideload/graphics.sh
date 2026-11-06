@@ -88,6 +88,51 @@ if [[ "${is_ensemble}" == "true" ]]; then
     done
   fi
 
+  # If not found, search OBSPATH_NSSLMOSAIC for the file closest to cycle valid time
+  if [[ -z "${obs_file}" && -n "${OBSPATH_NSSLMOSAIC}" && -d "${OBSPATH_NSSLMOSAIC}" ]]; then
+    obs_file=$(python3 -c '
+import os, sys, glob, re
+from datetime import datetime
+
+obspath = os.getenv("OBSPATH_NSSLMOSAIC", "")
+cdate_str = os.getenv("CDATE", "")
+if not (obspath and cdate_str):
+    sys.exit(0)
+
+try:
+    target_dt = datetime.strptime(cdate_str[:10], "%Y%m%d%H")
+except Exception:
+    sys.exit(0)
+
+pdy = cdate_str[:8]
+search_dirs = [obspath, os.path.join(obspath, pdy)]
+candidates = []
+for sdir in search_dirs:
+    if os.path.isdir(sdir):
+        for pattern in (f"*{pdy}*.grib2", f"*{pdy}*.grib2.gz"):
+            candidates.extend(glob.glob(os.path.join(sdir, pattern)))
+
+best_file = None
+best_diff = float("inf")
+ts_pattern = re.compile(r"(\d{8})[-_](\d{6})")
+
+for f in set(candidates):
+    m = ts_pattern.search(os.path.basename(f))
+    if m:
+        try:
+            fdt = datetime.strptime(m.group(1) + m.group(2), "%Y%m%d%H%M%S")
+            diff = abs((fdt - target_dt).total_seconds())
+            if diff < best_diff:
+                best_diff = diff
+                best_file = f
+        except Exception:
+            continue
+
+if best_file:
+    print(best_file)
+')
+  fi
+
   if [[ -n "${obs_file}" && -f "${obs_file}" ]]; then
     extra_args+=(--obs_file_path "${obs_file}")
   fi
