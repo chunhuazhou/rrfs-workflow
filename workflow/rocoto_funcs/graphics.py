@@ -15,7 +15,7 @@ def graphics(xmlFile, expdir, do_ensemble=False):
 <metatask name="{meta_id}">
 <var name="tile">{tiles}</var>'''
     meta_end = f'</metatask>\n'
-    cycledefs = os.getenv('CYCLEDEF_GRAPHICS', 'prod')
+    cycledefs = 'prod'
     #
     # Task-specific EnVars beyond the task_common_vars
     dcTaskEnv = {
@@ -29,10 +29,6 @@ def graphics(xmlFile, expdir, do_ensemble=False):
     }
     if do_ensemble:
         dcTaskEnv['ENS_SIZE'] = os.getenv('ENS_SIZE', '10')
-        if os.getenv('GRAPHICS_HAS_DET'):
-            dcTaskEnv['GRAPHICS_HAS_DET'] = os.getenv('GRAPHICS_HAS_DET')
-        if os.getenv('GRAPHICS_OBS_FILE'):
-            dcTaskEnv['GRAPHICS_OBS_FILE'] = os.getenv('GRAPHICS_OBS_FILE')
         obspath = os.getenv('OBSPATH_NSSLMOSAIC', '')
         if obspath:
             dcTaskEnv['OBSPATH_NSSLMOSAIC'] = f'<cyclestr>{obspath}</cyclestr>'
