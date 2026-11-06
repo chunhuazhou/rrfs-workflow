@@ -7,7 +7,7 @@ from rocoto_funcs.base import xml_task, get_cascade_env
 # begin of graphics --------------------------------------------------------
 
 
-def graphics(xmlFile, expdir, do_ensemble=False):
+def graphics(xmlFile, expdir):
     meta_id = 'graphics'
     task_id = f'{meta_id}_#tile#'
     tiles = os.getenv('GRAPHICS_TILES', 'full')
@@ -15,7 +15,7 @@ def graphics(xmlFile, expdir, do_ensemble=False):
 <metatask name="{meta_id}">
 <var name="tile">{tiles}</var>'''
     meta_end = f'</metatask>\n'
-    cycledefs = os.getenv('CYCLEDEF_GRAPHICS', 'prod')
+    cycledefs = 'prod'
     #
     # Task-specific EnVars beyond the task_common_vars
     dcTaskEnv = {
@@ -24,15 +24,7 @@ def graphics(xmlFile, expdir, do_ensemble=False):
         'GRAPHICS_ZIP': os.getenv('GRAPHICS_ZIP', 'FALSE').upper(),
         'GRAPHICS_MODEL': os.getenv('GRAPHICS_MODEL', ''),
         'UPP_DOMAIN': os.getenv('UPP_DOMAIN', 'conus.'),
-        'DO_ENSEMBLE': 'TRUE' if do_ensemble else 'FALSE',
-        'GRAPHICS_TYPE': os.getenv('GRAPHICS_TYPE', 'enspanel' if do_ensemble else 'maps'),
     }
-    if do_ensemble:
-        dcTaskEnv['ENS_SIZE'] = os.getenv('ENS_SIZE', '10')
-        if os.getenv('GRAPHICS_HAS_DET'):
-            dcTaskEnv['GRAPHICS_HAS_DET'] = os.getenv('GRAPHICS_HAS_DET')
-        if os.getenv('GRAPHICS_OBS_FILE'):
-            dcTaskEnv['GRAPHICS_OBS_FILE'] = os.getenv('GRAPHICS_OBS_FILE')
     # dependencies
     timedep = ""
     realtime = os.getenv("REALTIME", "false")
@@ -40,29 +32,14 @@ def graphics(xmlFile, expdir, do_ensemble=False):
         starttime = get_cascade_env(f"STARTTIME_{task_id}".upper())
         timedep = f'\n    <timedep><cyclestr offset="{starttime}">@Y@m@d@H@M00</cyclestr></timedep>'
     #
-    ngroup = int(os.getenv('POST_GROUP_TOT_NUM', '1') or 1)
-    if not do_ensemble:
-        taskdep = '\n<taskdep task="upp_g00"/>'
-        for i in range(1, ngroup):
-            taskdep += f'''
+    taskdep = '\n<taskdep task="upp_g00"/>'
+    ngroup = int(os.getenv('POST_GROUP_TOT_NUM'))
+    for i in range(1, ngroup):
+        taskdep += f'''
 <or>
   <not><taskvalid task="upp_g{i:02d}"/></not>
   <taskdep task="upp_g{i:02d}"/>
 </or>'''
-    else:
-        thresh_attr = ""
-        ens_metadep_frac_threshold = float(os.getenv('ENS_METADEP_FRAC_THRESHOLD', '1.0'))
-        if ens_metadep_frac_threshold < 1.0:
-            thresh_attr = f' threshold="{ens_metadep_frac_threshold:.1f}"'
-
-        taskdep = f'\n<metataskdep metatask="upp_g00"{thresh_attr}/>'
-        for i in range(1, ngroup):
-            taskdep += f'''
-<or>
-  <not><taskvalid task="upp_g{i:02d}_m001"/></not>
-  <metataskdep metatask="upp_g{i:02d}"{thresh_attr}/>
-</or>'''
-
     taskdep = textwrap.indent(taskdep, '    ')
     #
     dependencies = f'''

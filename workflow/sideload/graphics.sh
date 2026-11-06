@@ -11,38 +11,14 @@ export PARMrrfs=${PARMrrfs:-${HOMErrfs}/parm}
 export USHrrfs=${USHrrfs:-${HOMErrfs}/ush}
 #
 pygrafdir="${HOMErrfs}/workflow/sideload/pygraf"
-tile=${TILE:-'full'}
+image_list="${pygrafdir}/image_lists/regional_mpas_subset.yml"
+file_tmpl="${NET}.t${cyc}z.prslev.f0{FCST_TIME:02d}.${UPP_DOMAIN}grib2"
 model=${GRAPHICS_MODEL:-${NET}}
 ntasks=${NTASKS:-12}
-zipdir="${COMOUT}/nclprd"
-wait_minutes=${WAIT_MINUTES:-180}
-
-# Determine if running for ensemble or deterministic
-is_ensemble=false
-if [[ "${DO_ENSEMBLE^^}" == "TRUE" || "${WGF,,}" == "enkf" || "${WGF,,}" == "ens" || "${GRAPHICS_TYPE,,}" == "enspanel" ]]; then
-  is_ensemble=true
-fi
-
-if [[ -n "${GRAPHICS_TYPE}" ]]; then
-  graphics_type="${GRAPHICS_TYPE}"
-elif [[ "${is_ensemble}" == "true" ]]; then
-  graphics_type="enspanel"
-else
-  graphics_type="maps"
-fi
-
-if [[ "${is_ensemble}" == "true" ]]; then
-  image_list="${GRAPHICS_IMAGE_LIST:-"${pygrafdir}/image_lists/rrfs_ens.yml"}"
-  [[ ! -f "${image_list}" ]] && image_list="${pygrafdir}/image_lists/regional_mpas_subset.yml"
-  grib2_dir="${GRAPHICS_GRIB2_DIR:-"${COMOUT}/upp"}"
-  file_tmpl="${GRAPHICS_FILE_TMPL:-"${WGF:-enkf}/mem{mem:03d}/${NET}.t${cyc}z.prslev.f{FCST_TIME:03d}.${UPP_DOMAIN}grib2"}"
-else
-  image_list="${GRAPHICS_IMAGE_LIST:-"${pygrafdir}/image_lists/regional_mpas_subset.yml"}"
-  grib2_dir="${GRAPHICS_GRIB2_DIR:-"${COMOUT}/upp/det"}"
-  file_tmpl="${GRAPHICS_FILE_TMPL:-"${NET}.t${cyc}z.prslev.f0{FCST_TIME:02d}.${UPP_DOMAIN}grib2"}"
-fi
-
+grib2_dir="${COMOUT}/upp/det"
+tile=${TILE:-'full'}
 workdir="${COMOUT}/graphics/${WGF}/${tile}"
+zipdir="${COMOUT}/nclprd"
 rm -rf "${workdir}"
 mkdir -p "${workdir}"
 cd "${pygrafdir}" || exit 1
@@ -54,62 +30,17 @@ fcst_len_hrs_thiscyc=$( "${USHrrfs}/find_fcst_length.sh"  "${fcst_len_hrs_cycles
 echo "forecast length for this cycle is ${fcst_len_hrs_thiscyc}"
 fhr1=0
 fhr2=${fcst_len_hrs_thiscyc}
-
-extra_args=()
-if [[ "${is_ensemble}" == "true" ]]; then
-  ens_size=${ENS_SIZE:-10}
-  extra_args+=(--ens_size "${ens_size}")
-
-  if [[ -n "${GRAPHICS_HAS_DET}" ]]; then
-    if [[ "${GRAPHICS_HAS_DET^^}" == "TRUE" ]]; then
-      extra_args+=(--has_det)
-    else
-      extra_args+=(--no_det)
-    fi
-  fi
-
-  if [[ -n "${GRAPHICS_DET_TMPL}" ]]; then
-    extra_args+=(--det_tmpl "${GRAPHICS_DET_TMPL}")
-  fi
-
-  obs_file="${GRAPHICS_OBS_FILE:-}"
-  if [[ -z "${obs_file}" ]]; then
-    cand_obs=(
-      "${COMOUT}/ioda_mrms_refl/${WGF}/mrms_radr.t${cyc}z.grib2"
-      "${COMOUT}/ioda_mrms_refl/det/mrms_radr.t${cyc}z.grib2"
-      "${COMOUT}/obs/mrms_radr.t${cyc}z.grib2"
-      "${OBSPATH_NSSLMOSAIC:-/dev/null}/${PDY}/mrms_radr.t${cyc}z.grib2"
-    )
-    for co in "${cand_obs[@]}"; do
-      if [[ -f "${co}" ]]; then
-        obs_file="${co}"
-        break
-      fi
-    done
-  fi
-
-  if [[ -n "${obs_file}" && -f "${obs_file}" ]]; then
-    extra_args+=(--obs_file_path "${obs_file}")
-  fi
-fi
-
+wait_minutes=${WAIT_MINUTES:-180}
+#
+# generate the graphics
+#
 if [[ "${GRAPHICS_ZIP^^}" == "TRUE" ]]; then
   mkdir -p "${zipdir}"
-  extra_args+=(-z "${zipdir}")
+  python create_graphics.py maps --all_leads -d ${grib2_dir} -f ${fhr1} ${fhr2} --file_type prs --file_tmpl ${file_tmpl} -m ${model} \
+      --images ${image_list} hourly -n ${ntasks} -o ${workdir} -s ${CDATE} --tiles ${tile} -z ${zipdir} -w ${wait_minutes}
+else
+  python create_graphics.py maps --all_leads -d ${grib2_dir} -f ${fhr1} ${fhr2} --file_type prs --file_tmpl ${file_tmpl} -m ${model} \
+      --images ${image_list} hourly -n ${ntasks} -o ${workdir} -s ${CDATE} --tiles ${tile} -w ${wait_minutes}
 fi
-
-python create_graphics.py "${graphics_type}" --all_leads \
-    -d "${grib2_dir}" \
-    -f "${fhr1}" "${fhr2}" \
-    --file_type prs \
-    --file_tmpl "${file_tmpl}" \
-    -m "${model}" \
-    --images "${image_list}" "${GRAPHICS_IMAGE_SECTION:-hourly}" \
-    -n "${ntasks}" \
-    -o "${workdir}" \
-    -s "${CDATE}" \
-    --tiles ${tile} \
-    -w "${wait_minutes}" \
-    "${extra_args[@]}"
 export err=$?; err_chk
 exit 0
