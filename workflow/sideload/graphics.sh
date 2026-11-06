@@ -42,7 +42,10 @@ if [[ "${DO_ENSEMBLE^^}" == "TRUE" || "${WGF,,}" == "enkf" || "${WGF,,}" == "ens
   [[ ! -f "${image_list}" ]] && image_list="${pygrafdir}/image_lists/regional_mpas_subset.yml"
   grib2_dir="${COMOUT}/upp"
   file_tmpl="${WGF:-enkf}/mem{mem:03d}/${NET}.t${cyc}z.prslev.f{FCST_TIME:03d}.${UPP_DOMAIN}grib2"
-  ens_size=${ENS_SIZE:-10}
+  ens_size=${GRAPHICS_ENS_SIZE:-${ENS_SIZE:-10}}
+  if (( ens_size > 10 )); then
+    ens_size=10
+  fi
   extra_args+=(--ens_size "${ens_size}")
 
   # Ensure mem000 points to det so upstream pygraf finds member 0 directly

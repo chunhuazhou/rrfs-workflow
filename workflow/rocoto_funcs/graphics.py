@@ -26,7 +26,7 @@ def graphics(xmlFile, expdir, do_ensemble=False):
         'UPP_DOMAIN': os.getenv('UPP_DOMAIN', 'conus.'),
     }
     if do_ensemble:
-        dcTaskEnv['ENS_SIZE'] = os.getenv('ENS_SIZE', '10')
+        dcTaskEnv['ENS_SIZE'] = os.getenv('GRAPHICS_ENS_SIZE', '10')
         obspath = os.getenv('OBSPATH_NSSLMOSAIC', '')
         if obspath:
             dcTaskEnv['OBSPATH_NSSLMOSAIC'] = f'<cyclestr>{obspath}</cyclestr>'
