@@ -12,7 +12,7 @@ export USHrrfs=${USHrrfs:-${HOMErrfs}/ush}
 #
 pygrafdir="${HOMErrfs}/workflow/sideload/pygraf"
 image_list="${pygrafdir}/image_lists/regional_mpas_subset.yml"
-file_tmpl="${NET}.t${cyc}z.prslev.f0{FCST_TIME:02d}.${UPP_DOMAIN}grib2"
+file_tmpl="${NET}.t${cyc}z.prslev.f{FCST_TIME:03d}.${UPP_DOMAIN}grib2"
 model=${GRAPHICS_MODEL:-${NET}}
 ntasks=${NTASKS:-12}
 grib2_dir="${COMOUT}/upp/det"
@@ -41,7 +41,6 @@ if [[ "${DO_ENSEMBLE^^}" == "TRUE" || "${WGF,,}" == "enkf" || "${WGF,,}" == "ens
   image_list="${pygrafdir}/image_lists/rrfs_ens.yml"
   [[ ! -f "${image_list}" ]] && image_list="${pygrafdir}/image_lists/regional_mpas_subset.yml"
   grib2_dir="${COMOUT}/upp"
-  file_tmpl="${WGF:-enkf}/mem{mem:03d}/${NET}.t${cyc}z.prslev.f{FCST_TIME:03d}.${UPP_DOMAIN}grib2"
   ens_size=${ENS_SIZE:-10}
   extra_args+=(--ens_size "${ens_size}")
 
@@ -49,18 +48,28 @@ if [[ "${DO_ENSEMBLE^^}" == "TRUE" || "${WGF,,}" == "enkf" || "${WGF,,}" == "ens
   if [[ -n "${OBSPATH_NSSLMOSAIC}" && -d "${OBSPATH_NSSLMOSAIC}" ]]; then
     obs_file=$(python3 -c '
 import os, sys, glob, re
-from datetime import datetime
+from datetime import datetime, timedelta
 
 obspath = os.getenv("OBSPATH_NSSLMOSAIC", "")
 cdate_str = os.getenv("CDATE", "")
 if obspath and cdate_str:
     try:
         target_dt = datetime.strptime(cdate_str[:10], "%Y%m%d%H")
-        pdy = cdate_str[:8]
+        pdys = {
+            (target_dt - timedelta(days=1)).strftime("%Y%m%d"),
+            target_dt.strftime("%Y%m%d"),
+            (target_dt + timedelta(days=1)).strftime("%Y%m%d"),
+        }
+        search_dirs = [obspath]
+        for p in pdys:
+            search_dirs.append(os.path.join(obspath, p))
         candidates = []
-        for sdir in [obspath, os.path.join(obspath, pdy)]:
+        for sdir in search_dirs:
             if os.path.isdir(sdir):
-                candidates.extend(glob.glob(os.path.join(sdir, f"*{pdy}*.grib2*")))
+                for p in pdys:
+                    candidates.extend(glob.glob(os.path.join(sdir, f"*{p}*MergedReflectivityQC*.grib2*")))
+                    candidates.extend(glob.glob(os.path.join(sdir, f"*MergedReflectivityQC*{p}*.grib2*")))
+                    candidates.extend(glob.glob(os.path.join(sdir, f"*{p}*.grib2*")))
         best_file, best_diff = None, float("inf")
         ts_pattern = re.compile(r"(\d{8})[-_](\d{6})")
         for f in set(candidates):
@@ -73,7 +82,7 @@ if obspath and cdate_str:
                         best_diff, best_file = diff, f
                 except Exception:
                     continue
-        if best_file:
+        if best_file and best_diff <= 3600:
             print(best_file)
     except Exception:
         pass
