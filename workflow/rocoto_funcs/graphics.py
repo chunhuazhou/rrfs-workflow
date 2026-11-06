@@ -39,12 +39,11 @@ def graphics(xmlFile, expdir, do_ensemble=False):
     #
     dep = "metataskdep metatask" if do_ensemble else "taskdep task"
     taskdep = f'\n<{dep}="upp_g00"/>'
-    ngroup = int(os.getenv('POST_GROUP_TOT_NUM', '1') or 1)
+    ngroup = int(os.getenv('POST_GROUP_TOT_NUM'))
     for i in range(1, ngroup):
-        m001 = "_m001" if do_ensemble else ""
         taskdep += f'''
 <or>
-  <not><taskvalid task="upp_g{i:02d}{m001}"/></not>
+  <not><taskvalid task="upp_g{i:02d}"/></not>
   <{dep}="upp_g{i:02d}"/>
 </or>'''
 
