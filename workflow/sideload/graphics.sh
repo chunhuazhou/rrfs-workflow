@@ -60,6 +60,10 @@ if [[ "${is_ensemble}" == "true" ]]; then
   ens_size=${ENS_SIZE:-10}
   extra_args+=(--ens_size "${ens_size}")
 
+  if [[ "${WAIT_DET^^}" == "TRUE" ]]; then
+    extra_args+=(--wait_det)
+  fi
+
   if [[ -n "${GRAPHICS_DET_TMPL}" ]]; then
     extra_args+=(--det_tmpl "${GRAPHICS_DET_TMPL}")
   fi
