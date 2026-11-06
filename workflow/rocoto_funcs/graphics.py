@@ -24,8 +24,6 @@ def graphics(xmlFile, expdir, do_ensemble=False):
         'GRAPHICS_ZIP': os.getenv('GRAPHICS_ZIP', 'FALSE').upper(),
         'GRAPHICS_MODEL': os.getenv('GRAPHICS_MODEL', ''),
         'UPP_DOMAIN': os.getenv('UPP_DOMAIN', 'conus.'),
-        'DO_ENSEMBLE': 'TRUE' if do_ensemble else 'FALSE',
-        'GRAPHICS_TYPE': os.getenv('GRAPHICS_TYPE', 'enspanel' if do_ensemble else 'maps'),
     }
     if do_ensemble:
         dcTaskEnv['ENS_SIZE'] = os.getenv('ENS_SIZE', '10')
@@ -39,32 +37,23 @@ def graphics(xmlFile, expdir, do_ensemble=False):
         starttime = get_cascade_env(f"STARTTIME_{task_id}".upper())
         timedep = f'\n    <timedep><cyclestr offset="{starttime}">@Y@m@d@H@M00</cyclestr></timedep>'
     #
+    dep = "metataskdep metatask" if do_ensemble else "taskdep task"
+    taskdep = f'\n<{dep}="upp_g00"/>'
     ngroup = int(os.getenv('POST_GROUP_TOT_NUM', '1') or 1)
-    if not do_ensemble:
-        taskdep = '\n<taskdep task="upp_g00"/>'
-        for i in range(1, ngroup):
-            taskdep += f'''
+    for i in range(1, ngroup):
+        m001 = "_m001" if do_ensemble else ""
+        taskdep += f'''
 <or>
-  <not><taskvalid task="upp_g{i:02d}"/></not>
-  <taskdep task="upp_g{i:02d}"/>
-</or>'''
-    else:
-        taskdep = '\n<metataskdep metatask="upp_g00"/>'
-        for i in range(1, ngroup):
-            taskdep += f'''
-<or>
-  <not><taskvalid task="upp_g{i:02d}_m001"/></not>
-  <metataskdep metatask="upp_g{i:02d}"/>
+  <not><taskvalid task="upp_g{i:02d}{m001}"/></not>
+  <{dep}="upp_g{i:02d}"/>
 </or>'''
 
     taskdep = textwrap.indent(taskdep, '    ')
     #
-    # Optional data dependency on deterministic UPP grib2 file
     det_datadep = ""
-    if do_ensemble and os.getenv("GRAPHICS_WAIT_DET", "false").upper() == "TRUE":
+    if do_ensemble:
         domain = os.getenv('UPP_DOMAIN', 'conus.')
-        det_file = os.getenv('GRAPHICS_DET_FILE', f'&COMROOT;/&NET;/&rrfs_ver;/&RUN;.@Y@m@d/@H/upp/det/&RUN;.t@Hz.prslev.f001.{domain}grib2')
-        det_datadep = f'\n    <datadep age="00:00:10"><cyclestr>{det_file}</cyclestr></datadep>'
+        det_datadep = f'\n    <datadep age="00:00:10"><cyclestr>&COMROOT;/&NET;/&rrfs_ver;/&RUN;.@Y@m@d/@H/upp/det/&RUN;.t@Hz.prslev.f001.{domain}grib2</cyclestr></datadep>'
 
     dependencies = f'''
   <dependency>
