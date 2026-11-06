@@ -66,16 +66,10 @@ def graphics(xmlFile, expdir, do_ensemble=False):
     #
     # Optional data dependency on deterministic UPP grib2 file
     det_datadep = ""
-    if do_ensemble:
-        wait_det = os.getenv("GRAPHICS_WAIT_DET", "FALSE").strip()
-        if wait_det.upper() in ("TRUE", "YES", "1") or (wait_det and wait_det.upper() not in ("FALSE", "NO", "0")):
-            det_fhr = int(os.getenv('GRAPHICS_WAIT_DET_FHR', '1'))
-            domain = os.getenv('UPP_DOMAIN', 'conus.')
-            if wait_det.upper() in ("TRUE", "YES", "1"):
-                det_file = os.getenv('GRAPHICS_DET_FILE', f'&COMROOT;/&NET;/&rrfs_ver;/&RUN;.@Y@m@d/@H/upp/det/&RUN;.t@Hz.prslev.f{det_fhr:03d}.{domain}grib2')
-            else:
-                det_file = wait_det
-            det_datadep = f'\n    <datadep age="00:00:10"><cyclestr>{det_file}</cyclestr></datadep>'
+    if do_ensemble and os.getenv("GRAPHICS_WAIT_DET", "false").upper() == "TRUE":
+        domain = os.getenv('UPP_DOMAIN', 'conus.')
+        det_file = os.getenv('GRAPHICS_DET_FILE', f'&COMROOT;/&NET;/&rrfs_ver;/&RUN;.@Y@m@d/@H/upp/det/&RUN;.t@Hz.prslev.f001.{domain}grib2')
+        det_datadep = f'\n    <datadep age="00:00:10"><cyclestr>{det_file}</cyclestr></datadep>'
 
     dependencies = f'''
   <dependency>
