@@ -41,8 +41,12 @@ if [[ "${DO_ENSEMBLE^^}" == "TRUE" || "${WGF,,}" == "enkf" || "${WGF,,}" == "ens
   image_list="${pygrafdir}/image_lists/rrfs_ens.yml"
   [[ ! -f "${image_list}" ]] && image_list="${pygrafdir}/image_lists/regional_mpas_subset.yml"
   grib2_dir="${COMOUT}/upp"
+  file_tmpl="${WGF:-enkf}/mem{mem:03d}/${NET}.t${cyc}z.prslev.f{FCST_TIME:03d}.${UPP_DOMAIN}grib2"
   ens_size=${ENS_SIZE:-10}
   extra_args+=(--ens_size "${ens_size}")
+
+  # Ensure mem000 points to det so upstream pygraf finds member 0 directly
+  [[ -d "${COMOUT}/upp/det" && ! -e "${COMOUT}/upp/${WGF:-enkf}/mem000" ]] && ln -snf "${COMOUT}/upp/det" "${COMOUT}/upp/${WGF:-enkf}/mem000"
 
   # Search OBSPATH_NSSLMOSAIC for the MRMS file closest to cycle valid time
   if [[ -n "${OBSPATH_NSSLMOSAIC}" && -d "${OBSPATH_NSSLMOSAIC}" ]]; then
