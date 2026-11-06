@@ -49,17 +49,12 @@ def graphics(xmlFile, expdir, do_ensemble=False):
   <taskdep task="upp_g{i:02d}"/>
 </or>'''
     else:
-        thresh_attr = ""
-        ens_metadep_frac_threshold = float(os.getenv('ENS_METADEP_FRAC_THRESHOLD', '1.0'))
-        if ens_metadep_frac_threshold < 1.0:
-            thresh_attr = f' threshold="{ens_metadep_frac_threshold:.1f}"'
-
-        taskdep = f'\n<metataskdep metatask="upp_g00"{thresh_attr}/>'
+        taskdep = '\n<metataskdep metatask="upp_g00"/>'
         for i in range(1, ngroup):
             taskdep += f'''
 <or>
   <not><taskvalid task="upp_g{i:02d}_m001"/></not>
-  <metataskdep metatask="upp_g{i:02d}"{thresh_attr}/>
+  <metataskdep metatask="upp_g{i:02d}"/>
 </or>'''
 
     taskdep = textwrap.indent(taskdep, '    ')
