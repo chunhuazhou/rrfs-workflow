@@ -29,6 +29,8 @@ def graphics(xmlFile, expdir, do_ensemble=False):
     }
     if do_ensemble:
         dcTaskEnv['ENS_SIZE'] = os.getenv('ENS_SIZE', '10')
+        if os.getenv('WAIT_DET'):
+            dcTaskEnv['WAIT_DET'] = os.getenv('WAIT_DET')
         obspath = os.getenv('OBSPATH_NSSLMOSAIC', '')
         if obspath:
             dcTaskEnv['OBSPATH_NSSLMOSAIC'] = f'<cyclestr>{obspath}</cyclestr>'
