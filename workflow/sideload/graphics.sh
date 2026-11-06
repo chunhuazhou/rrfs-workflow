@@ -60,33 +60,23 @@ if [[ "${is_ensemble}" == "true" ]]; then
   ens_size=${ENS_SIZE:-10}
   extra_args+=(--ens_size "${ens_size}")
 
-  if [[ -n "${GRAPHICS_HAS_DET}" ]]; then
-    if [[ "${GRAPHICS_HAS_DET^^}" == "TRUE" ]]; then
-      extra_args+=(--has_det)
-    else
-      extra_args+=(--no_det)
-    fi
-  fi
-
   if [[ -n "${GRAPHICS_DET_TMPL}" ]]; then
     extra_args+=(--det_tmpl "${GRAPHICS_DET_TMPL}")
   fi
 
-  obs_file="${GRAPHICS_OBS_FILE:-}"
-  if [[ -z "${obs_file}" ]]; then
-    cand_obs=(
-      "${COMOUT}/ioda_mrms_refl/${WGF}/mrms_radr.t${cyc}z.grib2"
-      "${COMOUT}/ioda_mrms_refl/det/mrms_radr.t${cyc}z.grib2"
-      "${COMOUT}/obs/mrms_radr.t${cyc}z.grib2"
-      "${OBSPATH_NSSLMOSAIC:-/dev/null}/${PDY}/mrms_radr.t${cyc}z.grib2"
-    )
-    for co in "${cand_obs[@]}"; do
-      if [[ -f "${co}" ]]; then
-        obs_file="${co}"
-        break
-      fi
-    done
-  fi
+  obs_file=""
+  cand_obs=(
+    "${COMOUT}/ioda_mrms_refl/${WGF}/mrms_radr.t${cyc}z.grib2"
+    "${COMOUT}/ioda_mrms_refl/det/mrms_radr.t${cyc}z.grib2"
+    "${COMOUT}/obs/mrms_radr.t${cyc}z.grib2"
+    "${OBSPATH_NSSLMOSAIC:-/dev/null}/${PDY}/mrms_radr.t${cyc}z.grib2"
+  )
+  for co in "${cand_obs[@]}"; do
+    if [[ -f "${co}" ]]; then
+      obs_file="${co}"
+      break
+    fi
+  done
 
   # If not found, search OBSPATH_NSSLMOSAIC for the file closest to cycle valid time
   if [[ -z "${obs_file}" && -n "${OBSPATH_NSSLMOSAIC}" && -d "${OBSPATH_NSSLMOSAIC}" ]]; then
