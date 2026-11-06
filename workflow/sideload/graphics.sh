@@ -60,10 +60,6 @@ if [[ "${is_ensemble}" == "true" ]]; then
   ens_size=${ENS_SIZE:-10}
   extra_args+=(--ens_size "${ens_size}")
 
-  if [[ -n "${GRAPHICS_DET_TMPL}" ]]; then
-    extra_args+=(--det_tmpl "${GRAPHICS_DET_TMPL}")
-  fi
-
   obs_file=""
   cand_obs=(
     "${COMOUT}/ioda_mrms_refl/${WGF}/mrms_radr.t${cyc}z.grib2"
