@@ -27,9 +27,9 @@ def graphics(xmlFile, expdir, do_ensemble=False):
     }
     if do_ensemble:
         dcTaskEnv['ENS_SIZE'] = os.getenv('GRAPHICS_ENS_SIZE', '10')
-        obspath = os.getenv('OBSPATH_NSSLMOSAIC', '')
+        obspath = os.getenv('OBSPATH_MRMS_COMPOSITE', os.getenv('OBSPATH_NSSLMOSAIC', ''))
         if obspath:
-            dcTaskEnv['OBSPATH_NSSLMOSAIC'] = f'<cyclestr>{obspath}</cyclestr>'
+            dcTaskEnv['OBSPATH_MRMS_COMPOSITE'] = f'<cyclestr>{obspath}</cyclestr>'
     # dependencies
     timedep = ""
     realtime = os.getenv("REALTIME", "false")
