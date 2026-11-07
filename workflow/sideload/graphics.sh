@@ -57,52 +57,9 @@ if [[ "${DO_ENSEMBLE^^}" == "TRUE" || "${WGF,,}" == "enkf" || "${WGF,,}" == "ens
     fhr1=1
   fi
 
-  # Search OBSPATH_MRMS_COMPOSITE for the MRMS QCComposite file closest to cycle valid time
+  # Pass OBSPATH_MRMS_COMPOSITE to graphics so it dynamically resolves the matching obs file per forecast valid time
   if [[ -n "${OBSPATH_MRMS_COMPOSITE}" && -d "${OBSPATH_MRMS_COMPOSITE}" ]]; then
-    obs_file=$(python3 -c '
-import os, sys, glob, re
-from datetime import datetime, timedelta
-
-obspath = os.getenv("OBSPATH_MRMS_COMPOSITE", "")
-cdate_str = os.getenv("CDATE", "")
-if obspath and cdate_str:
-    try:
-        target_dt = datetime.strptime(cdate_str[:10], "%Y%m%d%H")
-        pdys = {
-            (target_dt - timedelta(days=1)).strftime("%Y%m%d"),
-            target_dt.strftime("%Y%m%d"),
-            (target_dt + timedelta(days=1)).strftime("%Y%m%d"),
-        }
-        search_dirs = [obspath]
-        for p in pdys:
-            search_dirs.append(os.path.join(obspath, p))
-        candidates = []
-        for sdir in search_dirs:
-            if os.path.isdir(sdir):
-                for p in pdys:
-                    candidates.extend(glob.glob(os.path.join(sdir, f"*{p}*MergedReflectivityQCComposite*.grib2*")))
-                    candidates.extend(glob.glob(os.path.join(sdir, f"*MergedReflectivityQCComposite*{p}*.grib2*")))
-                candidates.extend(glob.glob(os.path.join(sdir, "*MergedReflectivityQCComposite*.grib2*")))
-        best_file, best_diff = None, float("inf")
-        ts_pattern = re.compile(r"(\d{8})[-_](\d{6})")
-        for f in set(candidates):
-            m = ts_pattern.search(os.path.basename(f))
-            if m:
-                try:
-                    fdt = datetime.strptime(m.group(1) + m.group(2), "%Y%m%d%H%M%S")
-                    diff = abs((fdt - target_dt).total_seconds())
-                    if diff < best_diff:
-                        best_diff, best_file = diff, f
-                except Exception:
-                    continue
-        if best_file and best_diff <= 3600:
-            print(best_file)
-    except Exception:
-        pass
-')
-    if [[ -n "${obs_file}" && -f "${obs_file}" ]]; then
-      extra_args+=(--obs_file_path "${obs_file}")
-    fi
+    extra_args+=(--obs_file_path "${OBSPATH_MRMS_COMPOSITE}")
   fi
 fi
 
