@@ -28,7 +28,7 @@ cd "${pygrafdir}" || exit 1
 fcst_len_hrs_cycles=${FCST_LEN_HRS_CYCLES:-"01 01"}
 fcst_len_hrs_thiscyc=$( "${USHrrfs}/find_fcst_length.sh"  "${fcst_len_hrs_cycles}"  "${cyc}" )
 echo "forecast length for this cycle is ${fcst_len_hrs_thiscyc}"
-fhr1=0
+fhr1=${FHR1:-0}
 fhr2=${fcst_len_hrs_thiscyc}
 wait_minutes=${WAIT_MINUTES:-180}
 #
@@ -50,6 +50,12 @@ if [[ "${DO_ENSEMBLE^^}" == "TRUE" || "${WGF,,}" == "enkf" || "${WGF,,}" == "ens
 
   # Ensure mem000 points to det so upstream pygraf finds member 0 directly
   [[ -d "${COMOUT}/upp/det" && ! -e "${COMOUT}/upp/${WGF:-enkf}/mem000" ]] && ln -snf "${COMOUT}/upp/det" "${COMOUT}/upp/${WGF:-enkf}/mem000"
+
+  # If f000 does not exist on disk, start from f001
+  f000_sample="${COMOUT}/upp/${WGF:-enkf}/mem001/${NET}.t${cyc}z.prslev.f000.${UPP_DOMAIN}grib2"
+  if [[ "${fhr1}" -eq 0 && ! -f "${f000_sample}" ]]; then
+    fhr1=1
+  fi
 
   # Search OBSPATH_NSSLMOSAIC for the MRMS file closest to cycle valid time
   if [[ -n "${OBSPATH_NSSLMOSAIC}" && -d "${OBSPATH_NSSLMOSAIC}" ]]; then
