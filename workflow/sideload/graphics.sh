@@ -83,7 +83,7 @@ if obspath and cdate_str:
                     candidates.extend(glob.glob(os.path.join(sdir, f"*{p}*MergedReflectivityQC*.grib2*")))
                     candidates.extend(glob.glob(os.path.join(sdir, f"*MergedReflectivityQC*{p}*.grib2*")))
                     candidates.extend(glob.glob(os.path.join(sdir, f"*{p}*.grib2*")))
-        best_file, best_diff = None, float("inf")
+        best_file, best_diff, best_prio = None, float("inf"), 999
         ts_pattern = re.compile(r"(\d{8})[-_](\d{6})")
         for f in set(candidates):
             m = ts_pattern.search(os.path.basename(f))
@@ -91,8 +91,10 @@ if obspath and cdate_str:
                 try:
                     fdt = datetime.strptime(m.group(1) + m.group(2), "%Y%m%d%H%M%S")
                     diff = abs((fdt - target_dt).total_seconds())
-                    if diff < best_diff:
-                        best_diff, best_file = diff, f
+                    bn = os.path.basename(f).lower()
+                    prio = 0 if "composite" in bn else (1 if "mergedreflectivityqc" in bn else 2)
+                    if diff < best_diff or (diff == best_diff and prio < best_prio):
+                        best_diff, best_file, best_prio = diff, f, prio
                 except Exception:
                     continue
         if best_file and best_diff <= 3600:
