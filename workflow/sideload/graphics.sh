@@ -57,13 +57,14 @@ if [[ "${DO_ENSEMBLE^^}" == "TRUE" || "${WGF,,}" == "enkf" || "${WGF,,}" == "ens
     fhr1=1
   fi
 
-  # Search OBSPATH_NSSLMOSAIC for the MRMS file closest to cycle valid time
-  if [[ -n "${OBSPATH_NSSLMOSAIC}" && -d "${OBSPATH_NSSLMOSAIC}" ]]; then
+  # Search OBSPATH_MRMS_COMPOSITE (or OBSPATH_NSSLMOSAIC) for the MRMS file closest to cycle valid time
+  mrms_obspath="${OBSPATH_MRMS_COMPOSITE:-${OBSPATH_NSSLMOSAIC}}"
+  if [[ -n "${mrms_obspath}" && -d "${mrms_obspath}" ]]; then
     obs_file=$(python3 -c '
 import os, sys, glob, re
 from datetime import datetime, timedelta
 
-obspath = os.getenv("OBSPATH_NSSLMOSAIC", "")
+obspath = os.getenv("OBSPATH_MRMS_COMPOSITE", "") or os.getenv("OBSPATH_NSSLMOSAIC", "")
 cdate_str = os.getenv("CDATE", "")
 if obspath and cdate_str:
     try:
