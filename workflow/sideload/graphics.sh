@@ -83,25 +83,47 @@ if obspath and cdate_str:
                     candidates.extend(glob.glob(os.path.join(sdir, f"*{p}*MergedReflectivityQC*.grib2*")))
                     candidates.extend(glob.glob(os.path.join(sdir, f"*MergedReflectivityQC*{p}*.grib2*")))
                     candidates.extend(glob.glob(os.path.join(sdir, f"*{p}*.grib2*")))
-        best_file, best_diff, best_prio = None, float("inf"), 999
         ts_pattern = re.compile(r"(\d{8})[-_](\d{6})")
+        by_ts = {}
         for f in set(candidates):
             m = ts_pattern.search(os.path.basename(f))
             if m:
-                try:
-                    fdt = datetime.strptime(m.group(1) + m.group(2), "%Y%m%d%H%M%S")
-                    diff = abs((fdt - target_dt).total_seconds())
-                    bn = os.path.basename(f).lower()
-                    prio = 0 if "composite" in bn else (1 if "mergedreflectivityqc" in bn else 2)
-                    if diff < best_diff or (diff == best_diff and prio < best_prio):
-                        best_diff, best_file, best_prio = diff, f, prio
-                except Exception:
-                    continue
-        if best_file and best_diff <= 3600:
-            print(best_file)
+                ts = m.group(1) + m.group(2)
+                by_ts.setdefault(ts, []).append(f)
+
+        best_ts, best_diff = None, float("inf")
+        for ts in by_ts:
+            try:
+                fdt = datetime.strptime(ts, "%Y%m%d%H%M%S")
+                diff = abs((fdt - target_dt).total_seconds())
+                if diff < best_diff:
+                    best_diff, best_ts = diff, ts
+            except Exception:
+                continue
+
+        if best_ts and best_diff <= 3600:
+            flist = by_ts[best_ts]
+            comp_files = [f for f in flist if "composite" in os.path.basename(f).lower()]
+            if comp_files:
+                print(comp_files[0])
+            else:
+                for f in sorted(flist):
+                    print(f)
     except Exception:
         pass
 ')
+    obs_files=(${obs_file})
+    if (( ${#obs_files[@]} == 1 )); then
+      obs_file="${obs_files[0]}"
+    elif (( ${#obs_files[@]} > 1 )); then
+      combined_obs="${workdir}/mrms_combined_levels.grib2"
+      echo "Found ${#obs_files[@]} vertical level MRMS files for timestamp. Combining into column-maximum dataset..."
+      cat "${obs_files[@]}" > "${combined_obs}"
+      obs_file="${combined_obs}"
+    else
+      obs_file=""
+    fi
+
     if [[ -n "${obs_file}" && -f "${obs_file}" ]]; then
       extra_args+=(--obs_file_path "${obs_file}")
     fi
