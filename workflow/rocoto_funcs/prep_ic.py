@@ -1,6 +1,6 @@
 #!/usr/bin/env python
 import os
-from rocoto_funcs.base import xml_task, get_cascade_env
+from rocoto_funcs.base import xml_task, get_cascade_env, get_anl_type
 
 # begin of fcst --------------------------------------------------------
 
@@ -131,14 +131,31 @@ def prep_ic(xmlFile, expdir, do_ensemble=False, spinup_mode=0):
    </or>
   </dependency>'''
 
-# overwrite dependencies if no cycling (forecst-only)
-    if os.getenv('DO_CYC', 'FALSE').upper() == "FALSE":
+# overwrite dependencies if free_fcst or no cycling
+    free_fcst = os.getenv('FREE_FCST_ONLY', 'FALSE').upper() == "TRUE"
+    anl_type = get_anl_type()
+    if free_fcst and anl_type != 'ic':
+        if anl_type == 'getkf':
+            anl_file = '&COMINanl;/&RUN;.@Y@m@d/@H/getkf/&WGF;/mem001.nc'
+        elif do_ensemble:
+            anl_file = '&COMINanl;/&RUN;.@Y@m@d/@H/nonvar_cldana/&WGF;/mem001/mpasout.@Y-@m-@d_@H.00.00.nc'
+        else:
+            task = 'nonvar_cldana' if anl_type == 'nonvar_cldana' else 'jedivar'
+            anl_file = f'&COMINanl;/&RUN;.@Y@m@d/@H/{task}/&WGF;/mpasout.@Y-@m-@d_@H.00.00.nc'
+        dependencies = f'''
+  <dependency>
+  <and>{timedep}
+   <datadep age="00:00:05"><cyclestr>{anl_file}</cyclestr></datadep>
+  </and>
+  </dependency>'''
+    elif os.getenv('DO_CYC', 'FALSE').upper() == "FALSE":
         dependencies = ""
         if os.getenv('DO_IC_LBC', 'TRUE').upper() == "TRUE":
+            dep_ic = '<metataskdep metatask="ic"/>' if do_ensemble else '<taskdep task="ic"/>'
             dependencies = f'''
   <dependency>
   <and>{timedep}
-   <taskdep task="ic"/>
+   {dep_ic}
   </and>
   </dependency>'''
 

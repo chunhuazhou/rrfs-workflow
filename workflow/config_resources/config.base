@@ -34,6 +34,29 @@ else # sf_ruc
   export NSOIL_LEVELS=${NSOIL_LEVELS:-9}
 fi
 
+# required options if FREE_FCST_ONLY
+export FREE_FCST_ONLY=${FREE_FCST_ONLY:-false}
+export ANL_SOURCE=${ANL_SOURCE:-""}
+export LBC_SOURCE=${LBC_SOURCE:-${ANL_SOURCE}}
+export ANL_TYPE=${ANL_TYPE:-"auto"}
+
+if [[ "${FREE_FCST_ONLY^^}" == "TRUE" ]]; then
+  export DO_CYC=false
+  export DO_IODA=false
+  export DO_RADAR_REF=false
+  export DO_RECENTER=false
+  export DO_BLENDING=false
+  export DO_SPINUP=false
+  export DO_PYDAMONITOR=false
+  if [[ "${DO_NONVAR_CLOUD_ANA^^}" == "TRUE" || "${DO_JEDI^^}" == "TRUE" ]]; then
+    export DO_LBC=${DO_LBC:-false}
+  else
+    export DO_LBC=${DO_LBC:-${DO_IC_LBC:-true}}
+  fi
+else
+  export DO_LBC=${DO_LBC:-${DO_IC_LBC:-true}}
+fi
+
 # required options if DO_RTMA
 if [[ "${DO_RTMA^^}" == "TRUE" ]]; then
   export DO_CYC=true

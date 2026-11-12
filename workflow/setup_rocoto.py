@@ -88,8 +88,9 @@ if os.getenv("DO_CHEMISTRY", "FALSE").upper() == "TRUE" and os.path.exists(f"{HO
 if os.path.exists(f"{HOMErrfs}/workflow/config.override"):
     shutil.copy(f'{HOMErrfs}/workflow/config.override', f'{expdir}/config.override')  # save a copy for reference
 
-# if DO_JEDI, copy the super YAML, convinfo, satinfo files to EXPDIR
-if os.getenv("DO_JEDI", 'false').upper() == "TRUE":
+# if DO_JEDI and not free forecast, copy the super YAML, convinfo, satinfo files to EXPDIR
+free_fcst = os.getenv('FREE_FCST_ONLY', os.getenv('FREE_FCST', os.getenv('DO_FREE_FCST', 'FALSE'))).upper() == "TRUE"
+if not free_fcst and os.getenv("DO_JEDI", 'false').upper() == "TRUE":
     # copy jedivar/getkf yamls to exp_configdir
     if os.getenv('DO_ENSEMBLE', 'FALSE').upper() == "TRUE":
         if os.getenv('GETKF_ONESTEP', 'FALSE').upper() == "TRUE":
@@ -117,7 +118,7 @@ if os.getenv("DO_JEDI", 'false').upper() == "TRUE":
     shutil.copy(f'convinfo.{NET}{ens_str}', f'{exp_configdir}/convinfo')
     shutil.copy(f'satinfo.{NET}{ens_str}', f'{exp_configdir}/satinfo')
 #
-if os.getenv('DO_HOFX', 'FALSE').upper() == "TRUE":
+if not free_fcst and os.getenv('DO_HOFX', 'FALSE').upper() == "TRUE":
     smart_superyaml(HOMErrfs, 'hofx', mesh)
     shutil.copy(f'{HOMErrfs}/parm/hofx.yaml', f'{exp_configdir}/hofx.yaml')
 
@@ -169,14 +170,14 @@ if os.getenv('YAML_GEN_METHOD', '1') == '1':
     srcdir = f'{HOMErrfs}/workflow/tools/qrocoto'
     dstdir = f'{expdir}/qrocoto'
     shutil.copytree(srcdir, dstdir, dirs_exist_ok=True)
-    if os.getenv("DO_JEDI", 'false').upper() == "TRUE" and os.getenv('SAT_USELIST', ''):
+    if not free_fcst and os.getenv("DO_JEDI", 'false').upper() == "TRUE" and os.getenv('SAT_USELIST', ''):
         print(f'''\nRun the following commands to prepare the initial satbias files:
   cd  {expdir}
   source qrocoto/load_qrocoto.sh
   prep_satbias.sh YYYYMMDDHH [satbias_path]
 check https://github.com/NOAA-EMC/rrfs-workflow/wiki for more details''')
 
-elif os.getenv('YAML_GEN_METHOD', '1') == '2':
+elif not free_fcst and os.getenv('YAML_GEN_METHOD', '1') == '2':
     print("If doing radiance DA, run `prep_satbias.sh` to prepare the initial stabias files")
     # Copy files from HOMErrfs/workflow/tools to expdir
     shutil.copy2(f'{HOMErrfs}/workflow/tools/qrocoto/prep_satbias.sh', expdir)

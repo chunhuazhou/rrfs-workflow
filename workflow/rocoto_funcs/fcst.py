@@ -203,7 +203,15 @@ def fcst(xmlFile, expdir, do_ensemble=False, dcEnsGrpInfo=None, do_spinup=False,
     if "global" in os.getenv("MESH_NAME"):
         prep_lbc_dep = ''
 
-    dependencies = f'''
+    if os.getenv('FREE_FCST_ONLY', 'FALSE').upper() == "TRUE":
+        dependencies = f'''
+  <dependency>
+  <and>{timedep}{prep_lbc_dep}
+    {prep_ic_dep}{dep_xml}
+  </and>
+  </dependency>'''
+    else:
+        dependencies = f'''
   <dependency>
   <and>{timedep}{prep_lbc_dep}{da_dep}
     {prep_ic_dep}{chemdep}{final_recenterdep}{dep_xml}

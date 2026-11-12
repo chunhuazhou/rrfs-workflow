@@ -8,26 +8,37 @@ cd "${DATA}" || exit 1
 cyc_interval=${CYC_INTERVAL:-1}
 spinup_mode=${SPINUP_MODE:-0}
 #
-# decide if this cycle is cold start
+# decide if this cycle is cold start or free forecast
 #
-START_TYPE="warm"
-for hr in ${COLDSTART_CYCS:-"99"}; do
-  chr=$(printf '%02d' $((10#$hr)) )
-  if [[ "${cyc}" == "${chr}" ]]; then
+free_fcst=${FREE_FCST_ONLY:-${FREE_FCST:-${DO_FREE_FCST:-"false"}}}
+if [[ "${free_fcst^^}" == "TRUE" ]]; then
+  anl_type=${ANL_TYPE:-${DA_ANL_TYPE:-""}}
+  anl_type=${anl_type,,}
+  if [[ "${anl_type}" == "ic" ]]; then
     START_TYPE="cold"
-    break
+  else
+    START_TYPE="free_fcst"
   fi
-done
-if (( spinup_mode == -1 )); then
-# always warm start for prod cycles parallel to spinup cycles
+else
   START_TYPE="warm"
-  for hr in ${PRODSWITCH_CYCS:-"99"}; do
+  for hr in ${COLDSTART_CYCS:-"99"}; do
     chr=$(printf '%02d' $((10#$hr)) )
     if [[ "${cyc}" == "${chr}" ]]; then
-      prod_switch=yes
+      START_TYPE="cold"
       break
     fi
   done
+  if (( spinup_mode == -1 )); then
+  # always warm start for prod cycles parallel to spinup cycles
+    START_TYPE="warm"
+    for hr in ${PRODSWITCH_CYCS:-"99"}; do
+      chr=$(printf '%02d' $((10#$hr)) )
+      if [[ "${cyc}" == "${chr}" ]]; then
+        prod_switch=yes
+        break
+      fi
+    done
+  fi
 fi
 echo "this cycle is ${START_TYPE} start"
 #
@@ -56,7 +67,43 @@ for index in "${mem_list[@]}"; do # loop through all the members
     export CMDFILE="${DATA}/script_prep_ic_${pid}.sh"
   fi
 
-  if [[ "${START_TYPE}" == "cold" ]]; then
+  if [[ "${START_TYPE}" == "free_fcst" ]]; then
+    COMINanl=${COMINanl:-${COMINrrfs}}
+    cyc_dir="${COMINanl}/${RUN}.${PDY}/${cyc}"
+    da_anl_type=${ANL_TYPE:-${DA_ANL_TYPE:-"auto"}}
+    da_anl_type=${da_anl_type,,}
+    thisfile="undefined"
+
+    if (( 10#${index} == 0 )); then
+      cldana_file="${cyc_dir}/nonvar_cldana/${WGF}/mpasout.${timestr}.nc"
+      var_file="${cyc_dir}/jedivar/${WGF}/mpasout.${timestr}.nc"
+    else
+      cldana_file="${cyc_dir}/nonvar_cldana/${WGF}/mem${index}/mpasout.${timestr}.nc"
+      var_file="${cyc_dir}/getkf/${WGF}/mem${index}.nc"
+    fi
+
+    if [[ "${da_anl_type}" == *cld* || "${da_anl_type}" == *cloud* ]]; then
+      thisfile="${cldana_file}"
+    elif [[ "${da_anl_type}" == "jedivar" || "${da_anl_type}" == "getkf" || "${da_anl_type}" == "var" || "${da_anl_type}" == "jedi" ]]; then
+      thisfile="${var_file}"
+    else # auto: prefer nonvar_cldana, then jedivar/getkf
+      if [[ -s "${cldana_file}" ]]; then
+        thisfile="${cldana_file}"
+      elif [[ -s "${var_file}" ]]; then
+        thisfile="${var_file}"
+      else
+        thisfile="${cldana_file}"
+      fi
+    fi
+
+    if [[ -s "${thisfile}" ]]; then
+      echo "${cpreq} ${thisfile} ${umbrella_prep_ic_mem}/mpasout.nc" >> "${CMDFILE}"
+      echo "free forecast initialized from ${thisfile}"
+    else
+      echo "FATAL ERROR: PREP_IC failed, cannot find DA analysis file: ${thisfile}"
+      err_exit
+    fi
+  elif [[ "${START_TYPE}" == "cold" ]]; then
     thisfile=${COMINrrfs}/${RUN}.${PDY}/${cyc}/ic/${WGF}${memdir}/init.nc
     if [[ -s ${thisfile} ]]; then
       echo "${cpreq} ${thisfile} ${umbrella_prep_ic_mem}/init.nc" >> "${CMDFILE}"
@@ -139,7 +186,7 @@ for index in "${mem_list[@]}"; do # loop through all the members
           if [[ -s "${source_file}" ]]; then
             if [[ "${START_TYPE}" == "cold" ]]; then
               to_file="${umbrella_prep_ic_mem}/init.nc"
-            elif [[ "${START_TYPE}" == "warm" ]]; then
+            elif [[ "${START_TYPE}" == "warm" || "${START_TYPE}" == "free_fcst" ]]; then
               to_file="${umbrella_prep_ic_mem}/mpasout.nc"
             fi
             echo "surface update from ${source_file} to ${to_file}"

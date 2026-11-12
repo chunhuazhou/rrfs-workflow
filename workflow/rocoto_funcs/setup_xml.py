@@ -3,7 +3,7 @@
 import os
 import stat
 from rocoto_funcs.base import header_begin, header_entities, header_end, \
-    wflow_begin, wflow_log, wflow_cycledefs, wflow_end
+    wflow_begin, wflow_log, wflow_cycledefs, wflow_end, get_anl_type
 from rocoto_funcs.smart_cycledefs import smart_cycledefs
 from rocoto_funcs.smart_post_groups import smart_post_groups
 from rocoto_funcs.smart_save4next_groups import smart_save4next_groups, smart2_save4next_groups
@@ -49,6 +49,9 @@ def setup_xml(HOMErrfs, expdir):
     do_ensemble = os.getenv('DO_ENSEMBLE', 'FALSE').upper()
     do_ensmean_post = os.getenv('DO_ENSMEAN_POST', 'FALSE').upper()
     do_chemistry = os.getenv('DO_CHEMISTRY', 'FALSE').upper()
+    free_fcst = os.getenv('FREE_FCST_ONLY', os.getenv('FREE_FCST', os.getenv('DO_FREE_FCST', 'FALSE'))).upper() == "TRUE"
+    anl_type = get_anl_type()
+    has_da_anl = (anl_type != 'ic')
     subhourly = int(os.getenv('SUBCYC_INTERVAL') or 0) > 0
     if subhourly:
         tok_hm = "@H@M"
@@ -61,7 +64,7 @@ def setup_xml(HOMErrfs, expdir):
     if os.getenv("DO_POST", "TRUE").upper() == "TRUE":
         listPostGrpInfo = smart_post_groups(dcCycledef)
     # define extra save4next cycledefs smartly
-    if os.getenv("DO_SPINUP", "FALSE").upper() == "TRUE" or os.getenv('DO_CYC', 'FALSE').upper() == "TRUE" and os.getenv('DO_RTMA', 'FALSE').upper() == 'FALSE':
+    if not free_fcst and (os.getenv("DO_SPINUP", "FALSE").upper() == "TRUE" or os.getenv('DO_CYC', 'FALSE').upper() == "TRUE" and os.getenv('DO_RTMA', 'FALSE').upper() == 'FALSE'):
         if subhourly:
             listSave4NextGrpInfo = smart2_save4next_groups(dcCycledef)
         else:
@@ -84,25 +87,29 @@ def setup_xml(HOMErrfs, expdir):
             ungrib_ic(xmlFile, expdir)
             ic(xmlFile, expdir)
         elif do_deterministic == "TRUE":
-            if os.getenv("DO_IODA", "FALSE").upper() == "TRUE":
-                if do_chemistry == "TRUE":
-                    ioda_airnow(xmlFile, expdir)
-                ioda_bufr(xmlFile, expdir)
-            if os.getenv("DO_RADAR_REF", "FALSE").upper() == "TRUE":
-                ioda_mrms_refl(xmlFile, expdir)
-            if os.getenv("DO_NONVAR_CLOUD_ANA", "FALSE").upper() == "TRUE":
-                nonvar_bufrobs(xmlFile, expdir)
-                nonvar_reflobs(xmlFile, expdir)
+            if not free_fcst:
+                if os.getenv("DO_IODA", "FALSE").upper() == "TRUE":
+                    if do_chemistry == "TRUE":
+                        ioda_airnow(xmlFile, expdir)
+                    ioda_bufr(xmlFile, expdir)
+                if os.getenv("DO_RADAR_REF", "FALSE").upper() == "TRUE":
+                    ioda_mrms_refl(xmlFile, expdir)
+                if os.getenv("DO_NONVAR_CLOUD_ANA", "FALSE").upper() == "TRUE":
+                    nonvar_bufrobs(xmlFile, expdir)
+                    nonvar_reflobs(xmlFile, expdir)
             #
-            if os.getenv("DO_IC_LBC", "TRUE").upper() == "TRUE":
+            do_ic = not (free_fcst and has_da_anl) and os.getenv("DO_IC_LBC", "TRUE").upper() == "TRUE"
+            do_lbc = os.getenv("DO_LBC", os.getenv("DO_IC_LBC", "TRUE")).upper() == "TRUE" and "global" not in MESH_NAME
+            if do_ic:
                 ungrib_ic(xmlFile, expdir)
-                if "global" not in MESH_NAME:
-                    ungrib_lbc(xmlFile, expdir)
+            if do_lbc:
+                ungrib_lbc(xmlFile, expdir)
+            if do_ic:
                 ic(xmlFile, expdir)
-                if "global" not in MESH_NAME:
-                    lbc(xmlFile, expdir)
+            if do_lbc:
+                lbc(xmlFile, expdir)
             #
-            if os.getenv("DO_SPINUP", "FALSE").upper() == "TRUE":
+            if not free_fcst and os.getenv("DO_SPINUP", "FALSE").upper() == "TRUE":
                 prep_lbc(xmlFile, expdir)
                 # spin up line
                 prep_ic(xmlFile, expdir, spinup_mode=1)
@@ -127,19 +134,20 @@ def setup_xml(HOMErrfs, expdir):
                 prep_ic(xmlFile, expdir)
                 if "global" not in MESH_NAME:
                     prep_lbc(xmlFile, expdir)
-                if do_chemistry == "TRUE":
-                    prep_chem(xmlFile, expdir)
-                if os.getenv("DO_BLENDING", "FALSE").upper() == "TRUE":
-                    mpas_blend(xmlFile, expdir)
-                if os.getenv("DO_JEDI", "FALSE").upper() == "TRUE":
-                    jedivar(xmlFile, expdir)
-                if os.getenv("DO_NONVAR_CLOUD_ANA", "FALSE").upper() == "TRUE":
-                    nonvar_cldana(xmlFile, expdir)
-                if os.getenv("DO_PYDAMONITOR", "FALSE").upper() == "TRUE":
-                    pyDAmonitor(xmlFile, expdir)
+                if not free_fcst:
+                    if do_chemistry == "TRUE":
+                        prep_chem(xmlFile, expdir)
+                    if os.getenv("DO_BLENDING", "FALSE").upper() == "TRUE":
+                        mpas_blend(xmlFile, expdir)
+                    if os.getenv("DO_JEDI", "FALSE").upper() == "TRUE":
+                        jedivar(xmlFile, expdir)
+                    if os.getenv("DO_NONVAR_CLOUD_ANA", "FALSE").upper() == "TRUE":
+                        nonvar_cldana(xmlFile, expdir)
+                    if os.getenv("DO_PYDAMONITOR", "FALSE").upper() == "TRUE":
+                        pyDAmonitor(xmlFile, expdir)
                 for dcGrpInfo in listFcstGrpInfo:
                     fcst(xmlFile, expdir, dcFcstGrpInfo=dcGrpInfo)
-                if os.getenv('DO_CYC', 'FALSE').upper() == "TRUE" and os.getenv('DO_RTMA', 'FALSE').upper() == 'FALSE':
+                if not free_fcst and os.getenv('DO_CYC', 'FALSE').upper() == "TRUE" and os.getenv('DO_RTMA', 'FALSE').upper() == 'FALSE':
                     for dcGrpInfo in listSave4NextGrpInfo:
                         save_for_next(xmlFile, expdir, dcGrpInfo)
             #
@@ -151,7 +159,7 @@ def setup_xml(HOMErrfs, expdir):
                 graphics(xmlFile, expdir)
                 if not os.path.exists(f"{HOMErrfs}/workflow/sideload/pygraf"):
                     print("  *** DO_GRAPHICS=true but pygraf not cloned yet!!! ***\n  run `tools/clone_pygraf.sh` first\n")
-            if os.getenv("DO_HOFX", "FALSE").upper() == "TRUE":
+            if not free_fcst and os.getenv("DO_HOFX", "FALSE").upper() == "TRUE":
                 hofx(xmlFile, expdir)
             if os.getenv("DO_ARCHIVE", "FALSE").upper() == "TRUE":
                 archive(xmlFile, expdir)
@@ -162,43 +170,49 @@ def setup_xml(HOMErrfs, expdir):
             ungrib_ic(xmlFile, expdir, do_ensemble=True)
             ic(xmlFile, expdir, do_ensemble=True)
         elif do_ensemble == "TRUE":
-            if os.getenv("DO_IODA", "FALSE").upper() == "TRUE":
-                if do_chemistry == "TRUE":
-                    ioda_airnow(xmlFile, expdir)
-                ioda_bufr(xmlFile, expdir)
-            if os.getenv("DO_RADAR_REF", "FALSE").upper() == "TRUE":
-                ioda_mrms_refl(xmlFile, expdir)
-            if os.getenv("DO_NONVAR_CLOUD_ANA", "FALSE").upper() == "TRUE":
-                nonvar_bufrobs(xmlFile, expdir)
-                nonvar_reflobs(xmlFile, expdir)
-            ungrib_ic(xmlFile, expdir, do_ensemble=True)
-            if "global" not in MESH_NAME:
+            if not free_fcst:
+                if os.getenv("DO_IODA", "FALSE").upper() == "TRUE":
+                    if do_chemistry == "TRUE":
+                        ioda_airnow(xmlFile, expdir)
+                    ioda_bufr(xmlFile, expdir)
+                if os.getenv("DO_RADAR_REF", "FALSE").upper() == "TRUE":
+                    ioda_mrms_refl(xmlFile, expdir)
+                if os.getenv("DO_NONVAR_CLOUD_ANA", "FALSE").upper() == "TRUE":
+                    nonvar_bufrobs(xmlFile, expdir)
+                    nonvar_reflobs(xmlFile, expdir)
+            do_ic = not (free_fcst and has_da_anl) and os.getenv("DO_IC_LBC", "TRUE").upper() == "TRUE"
+            do_lbc = os.getenv("DO_LBC", os.getenv("DO_IC_LBC", "TRUE")).upper() == "TRUE" and "global" not in MESH_NAME
+            if do_ic:
+                ungrib_ic(xmlFile, expdir, do_ensemble=True)
+            if do_lbc:
                 ungrib_lbc(xmlFile, expdir, do_ensemble=True)
-            ic(xmlFile, expdir, do_ensemble=True)
-            if "global" not in MESH_NAME:
+            if do_ic:
+                ic(xmlFile, expdir, do_ensemble=True)
+            if do_lbc:
                 lbc(xmlFile, expdir, do_ensemble=True)
             prep_ic(xmlFile, expdir, do_ensemble=True)
             if "global" not in MESH_NAME:
                 prep_lbc(xmlFile, expdir, do_ensemble=True)
-            if os.getenv("DO_RECENTER", "FALSE").upper() == "TRUE":
-                recenter(xmlFile, expdir)
-            if os.getenv("DO_JEDI", "FALSE").upper() == "TRUE":
-                if os.getenv("GETKF_ONESTEP", "FALSE").upper() == "TRUE":
-                    getkf(xmlFile, expdir, 'OBSERVER_SOLVER')
-                else:
-                    getkf(xmlFile, expdir, 'OBSERVER')
-                    getkf(xmlFile, expdir, 'SOLVER')
+            if not free_fcst:
+                if os.getenv("DO_RECENTER", "FALSE").upper() == "TRUE":
+                    recenter(xmlFile, expdir)
+                if os.getenv("DO_JEDI", "FALSE").upper() == "TRUE":
+                    if os.getenv("GETKF_ONESTEP", "FALSE").upper() == "TRUE":
+                        getkf(xmlFile, expdir, 'OBSERVER_SOLVER')
+                    else:
+                        getkf(xmlFile, expdir, 'OBSERVER')
+                        getkf(xmlFile, expdir, 'SOLVER')
 
-                if os.getenv("DO_GETKF_POST", "TRUE").upper() == "TRUE":
-                    getkf(xmlFile, expdir, 'POST')
-            if os.getenv("DO_NONVAR_CLOUD_ANA", "FALSE").upper() == "TRUE":
-                nonvar_cldana(xmlFile, expdir, do_ensemble=True)
-            if os.getenv("DO_PYDAMONITOR", "FALSE").upper() == "TRUE":
-                pyDAmonitor(xmlFile, expdir)
+                    if os.getenv("DO_GETKF_POST", "TRUE").upper() == "TRUE":
+                        getkf(xmlFile, expdir, 'POST')
+                if os.getenv("DO_NONVAR_CLOUD_ANA", "FALSE").upper() == "TRUE":
+                    nonvar_cldana(xmlFile, expdir, do_ensemble=True)
+                if os.getenv("DO_PYDAMONITOR", "FALSE").upper() == "TRUE":
+                    pyDAmonitor(xmlFile, expdir)
             listEnsGrpInfo = smart_ens_groups('fcst')
             for dcEnsGrpInfo in listEnsGrpInfo["group_list"]:
                 fcst(xmlFile, expdir, do_ensemble=True, dcEnsGrpInfo=dcEnsGrpInfo)
-            if os.getenv('DO_CYC', 'FALSE').upper() == "TRUE":
+            if not free_fcst and os.getenv('DO_CYC', 'FALSE').upper() == "TRUE":
                 for dcGrpInfo in listSave4NextGrpInfo:
                     save_for_next(xmlFile, expdir, dcGrpInfo, do_ensemble=True)
             if os.getenv("DO_POST", "TRUE").upper() == "TRUE":

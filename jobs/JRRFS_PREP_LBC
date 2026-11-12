@@ -39,6 +39,13 @@ mkdir -p "${DATA}"
 export COMINrrfs=${COMINrrfs:-$(compath.py "${envir}/rrfs/${rrfs_ver}")}
 export COMOUT=${COMOUT:-$(compath.py -o "${NET}/${rrfs_ver}/${RUN}.${PDY}/${cyc}")}
 #
+# Define the source dir for LBCs
+do_lbc=${DO_LBC:-${DO_IC_LBC:-true}}
+if [[ "${do_lbc^^}" == "FALSE" && -n "${LBC_SOURCE:-${ANL_SOURCE}}" ]]; then
+  export COMINlbc="${LBC_SOURCE:-${ANL_SOURCE}}/com/${NET}/${rrfs_ver}"
+fi
+export COMINlbc=${COMINlbc:-${COMINrrfs}}
+#
 #----------------------------------------
 # Execute the script.
 #----------------------------------------

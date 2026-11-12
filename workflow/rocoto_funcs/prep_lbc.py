@@ -55,7 +55,8 @@ def prep_lbc(xmlFile, expdir, do_ensemble=False):
         taskdep = f'\n     <taskdep task="prep_ic"/>'
 
     dependencies = ""
-    if os.getenv('DO_IC_LBC', 'TRUE').upper() == "TRUE" or os.getenv('DO_RTMA', 'FALSE').upper() == 'TRUE':
+    do_lbc = os.getenv('DO_LBC', os.getenv('DO_IC_LBC', 'TRUE')).upper() == "TRUE"
+    if do_lbc or os.getenv('DO_RTMA', 'FALSE').upper() == 'TRUE':
         dependencies = f'''
   <dependency>
   <and>{timedep}

@@ -45,6 +45,12 @@ if [[ -z "${SFC_UPDATE_SOURCE_DIR}" ]]; then
 else
   export COMINsfc="${SFC_UPDATE_SOURCE_DIR}/com/${NET}/${rrfs_ver}"
 fi
+#
+# Define the source dir for DA analysis
+if [[ -n "${ANL_SOURCE}" ]]; then
+  export COMINanl="${ANL_SOURCE}/com/${NET}/${rrfs_ver}"
+fi
+export COMINanl=${COMINanl:-${COMINrrfs}}
 #----------------------------------------
 # Execute the script.
 #----------------------------------------

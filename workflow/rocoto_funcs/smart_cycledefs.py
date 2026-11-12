@@ -22,7 +22,7 @@ def smart_cycledefs():
         cyc_interval = os.getenv('CYC_INTERVAL', '3')
         cold_cycs = os.getenv('COLDSTART_CYCS', '03 15').strip().split()
         ic_step = str(int(24 / len(cold_cycs)))
-        if os.getenv('DO_CYC', 'FALSE').upper() == "FALSE":
+        if os.getenv('DO_CYC', 'FALSE').upper() == "FALSE" and os.getenv('FREE_FCST_ONLY', 'FALSE').upper() != "TRUE":
             cyc_interval = ic_step
             os.environ["CYC_INTERVAL"] = cyc_interval  # assign a pseudo "CYC_INTERVAL" for coldstart_only
         if recenter:
@@ -53,6 +53,8 @@ def smart_cycledefs():
             cold_cyc1 = cold_cycs[index]
             lbc_cyc1 = lbc_cycs[index]
             prod_cyc1 = cold_cyc1
+            if os.getenv('FREE_FCST_ONLY', 'FALSE').upper() == "TRUE":
+                prod_cyc1 = f"{hour1:02d}"
             if spinup:  # if spinup, the first prod_cyc is from prodswitch_cycs
                 prod_cyc1 = prodswitch_cycs[index]
             if recenter:

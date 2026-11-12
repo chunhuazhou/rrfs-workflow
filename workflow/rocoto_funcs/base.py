@@ -44,6 +44,19 @@ def run_git_command(cmd):
     else:
         raise RuntimeError(f"Git command failed: {' '.join(cmd)}\n{result.stderr.strip()}")
 
+# get_anl_type
+
+
+def get_anl_type():
+    anl_type = os.getenv('ANL_TYPE', '').lower()
+    if anl_type and anl_type != 'auto':
+        return anl_type
+    if os.getenv('DO_NONVAR_CLOUD_ANA', 'FALSE').upper() == 'TRUE':
+        return 'nonvar_cldana'
+    elif os.getenv('DO_JEDI', 'FALSE').upper() == 'TRUE':
+        return 'getkf' if os.getenv('DO_ENSEMBLE', 'FALSE').upper() == 'TRUE' else 'jedivar'
+    return 'ic'
+
 # head_begin
 
 
@@ -117,6 +130,23 @@ def header_entities(xmlFile, expdir):
             text = text + f'<!ENTITY RESERVATION     "--reservation={reservation}">\n'
     else:
         text = ''
+    free_fcst = os.getenv('FREE_FCST_ONLY', 'FALSE').upper() == "TRUE"
+    free_fcst_entities = ""
+    free_fcst_envars = ""
+    if free_fcst:
+        anl_type = get_anl_type()
+        anl_source = os.getenv('ANL_SOURCE', '')
+        lbc_source = os.getenv('LBC_SOURCE', anl_source)
+        do_lbc = os.getenv('DO_LBC', 'TRUE').upper() == "TRUE"
+        cominanl = f"{anl_source}/com/{net}/{rrfs_ver}" if anl_source else f"{COMROOT}/{net}/{rrfs_ver}"
+        cominlbc = f"{lbc_source}/com/{net}/{rrfs_ver}" if lbc_source and not do_lbc else f"{COMROOT}/{net}/{rrfs_ver}"
+        if anl_type != 'ic':
+            free_fcst_entities += f'\n<!ENTITY COMINanl        "{cominanl}">'
+            free_fcst_envars += '\n<envar><name>COMINanl</name><value>&COMINanl;</value></envar>'
+        free_fcst_entities += f'\n<!ENTITY COMINlbc        "{cominlbc}">'
+        free_fcst_envars += f'\n<envar><name>COMINlbc</name><value>&COMINlbc;</value></envar>'
+        free_fcst_envars += f'\n<envar><name>FREE_FCST_ONLY</name><value>TRUE</value></envar>\n<envar><name>ANL_TYPE</name><value>{anl_type}</value></envar>\n<envar><name>DO_LBC</name><value>{"TRUE" if do_lbc else "FALSE"}</value></envar>'
+
     #
     text = text + f'''
 <!ENTITY MACHINE         "{MACHINE}">
@@ -129,7 +159,7 @@ def header_entities(xmlFile, expdir):
 <!ENTITY RUN             "{run}">
 <!ENTITY NET             "{net}">
 <!ENTITY rrfs_ver        "{rrfs_ver}">
-<!ENTITY WGF             "{wgf}">
+<!ENTITY WGF             "{wgf}">{free_fcst_entities}
 
 <!ENTITY task_common_vars
 "
@@ -149,7 +179,7 @@ def header_entities(xmlFile, expdir):
 <envar><name>MPI_RUN_CMD</name><value>{mpi_run_cmd}</value></envar>
 <envar><name>MESH_NAME</name><value>{mesh_name}</value></envar>
 <envar><name>WGF</name><value>{wgf}</value></envar>
-<envar><name>CYC_INTERVAL</name><value>{cyc_interval}</value></envar>{subcyc_envar}{chem_envar}
+<envar><name>CYC_INTERVAL</name><value>{cyc_interval}</value></envar>{subcyc_envar}{chem_envar}{free_fcst_envars}
 "
 >{entities_for_cycledef}
 '''
