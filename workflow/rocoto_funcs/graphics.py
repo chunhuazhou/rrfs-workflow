@@ -7,7 +7,7 @@ from rocoto_funcs.base import xml_task, get_cascade_env
 # begin of graphics --------------------------------------------------------
 
 
-def graphics(xmlFile, expdir):
+def graphics(xmlFile, expdir, do_ensemble=False):
     meta_id = 'graphics'
     task_id = f'{meta_id}_#tile#'
     tiles = os.getenv('GRAPHICS_TILES', 'full')
@@ -25,6 +25,12 @@ def graphics(xmlFile, expdir):
         'GRAPHICS_MODEL': os.getenv('GRAPHICS_MODEL', ''),
         'UPP_DOMAIN': os.getenv('UPP_DOMAIN', 'conus.'),
     }
+    if do_ensemble:
+        dcTaskEnv['DO_ENSEMBLE'] = 'TRUE'
+        dcTaskEnv['ENS_SIZE'] = os.getenv('GRAPHICS_ENS_SIZE', '10')
+        obspath = os.getenv('OBSPATH_MRMS_COMPOSITE', '')
+        if obspath:
+            dcTaskEnv['OBSPATH_MRMS_COMPOSITE'] = f'<cyclestr>{obspath}</cyclestr>'
     # dependencies
     timedep = ""
     realtime = os.getenv("REALTIME", "false")
@@ -32,19 +38,26 @@ def graphics(xmlFile, expdir):
         starttime = get_cascade_env(f"STARTTIME_{task_id}".upper())
         timedep = f'\n    <timedep><cyclestr offset="{starttime}">@Y@m@d@H@M00</cyclestr></timedep>'
     #
-    taskdep = '\n<taskdep task="upp_g00"/>'
+    dep = "metataskdep metatask" if do_ensemble else "taskdep task"
+    taskdep = f'\n<{dep}="upp_g00"/>'
     ngroup = int(os.getenv('POST_GROUP_TOT_NUM'))
     for i in range(1, ngroup):
         taskdep += f'''
 <or>
   <not><taskvalid task="upp_g{i:02d}"/></not>
-  <taskdep task="upp_g{i:02d}"/>
+  <{dep}="upp_g{i:02d}"/>
 </or>'''
+
     taskdep = textwrap.indent(taskdep, '    ')
     #
+    det_datadep = ""
+    if do_ensemble:
+        domain = os.getenv('UPP_DOMAIN', 'conus.')
+        det_datadep = f'\n    <datadep age="00:00:10"><cyclestr>&COMROOT;/&NET;/&rrfs_ver;/&RUN;.@Y@m@d/@H/upp/det/&RUN;.t@Hz.prslev.f001.{domain}grib2</cyclestr></datadep>'
+
     dependencies = f'''
   <dependency>
-  <and>{timedep}{taskdep}
+  <and>{timedep}{taskdep}{det_datadep}
   </and>
   </dependency>'''
 
