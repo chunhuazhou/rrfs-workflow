@@ -3,7 +3,7 @@
 import os
 import stat
 from rocoto_funcs.base import header_begin, header_entities, header_end, \
-    wflow_begin, wflow_log, wflow_cycledefs, wflow_end, get_anl_type
+    wflow_begin, wflow_log, wflow_cycledefs, wflow_end
 from rocoto_funcs.smart_cycledefs import smart_cycledefs
 from rocoto_funcs.smart_post_groups import smart_post_groups
 from rocoto_funcs.smart_save4next_groups import smart_save4next_groups, smart2_save4next_groups
@@ -50,8 +50,8 @@ def setup_xml(HOMErrfs, expdir):
     do_ensmean_post = os.getenv('DO_ENSMEAN_POST', 'FALSE').upper()
     do_chemistry = os.getenv('DO_CHEMISTRY', 'FALSE').upper()
     free_fcst = os.getenv('FREE_FCST_ONLY', 'FALSE').upper() == "TRUE"
-    anl_type = get_anl_type()
-    has_da_anl = (anl_type != 'ic')
+    anl_type = os.getenv('ANL_TYPE', '').lower()
+    has_da_anl = bool(anl_type and anl_type != 'ic')
     subhourly = int(os.getenv('SUBCYC_INTERVAL') or 0) > 0
     if subhourly:
         tok_hm = "@H@M"

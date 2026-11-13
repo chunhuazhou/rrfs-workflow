@@ -44,24 +44,6 @@ def run_git_command(cmd):
     else:
         raise RuntimeError(f"Git command failed: {' '.join(cmd)}\n{result.stderr.strip()}")
 
-# get_anl_type
-
-
-def get_anl_type():
-    free_fcst = os.getenv('FREE_FCST_ONLY', 'FALSE').upper() == 'TRUE'
-    anl_type = os.getenv('ANL_TYPE', '').lower()
-    if free_fcst:
-        if anl_type and anl_type not in ['auto', 'ic']:
-            return anl_type
-        return 'ic'
-    if anl_type and anl_type != 'auto':
-        return anl_type
-    if os.getenv('DO_NONVAR_CLOUD_ANA', 'FALSE').upper() == 'TRUE':
-        return 'nonvar_cldana'
-    elif os.getenv('DO_JEDI', 'FALSE').upper() == 'TRUE':
-        return 'getkf' if os.getenv('DO_ENSEMBLE', 'FALSE').upper() == 'TRUE' else 'jedivar'
-    return 'ic'
-
 # head_begin
 
 
@@ -135,22 +117,24 @@ def header_entities(xmlFile, expdir):
             text = text + f'<!ENTITY RESERVATION     "--reservation={reservation}">\n'
     else:
         text = ''
-    free_fcst = os.getenv('FREE_FCST_ONLY', 'FALSE').upper() == "TRUE"
     free_fcst_entities = ""
     free_fcst_envars = ""
-    if free_fcst:
-        anl_type = get_anl_type()
-        anl_source = os.getenv('ANL_SOURCE', '')
-        lbc_source = os.getenv('LBC_SOURCE', anl_source)
-        do_lbc = os.getenv('DO_LBC', 'TRUE').upper() == "TRUE"
-        cominanl = f"{anl_source}/com/{net}/{rrfs_ver}" if anl_source else f"{COMROOT}/{net}/{rrfs_ver}"
-        cominlbc = f"{lbc_source}/com/{net}/{rrfs_ver}" if lbc_source and not do_lbc else f"{COMROOT}/{net}/{rrfs_ver}"
-        if anl_type != 'ic':
+    if os.getenv('FREE_FCST_ONLY', 'FALSE').upper() == "TRUE":
+        free_fcst_envars = '\n<envar><name>FREE_FCST_ONLY</name><value>TRUE</value></envar>'
+        anl_type = os.getenv('ANL_TYPE', '').lower()
+        if anl_type and anl_type != 'ic':
+            anl_source = os.getenv('ANL_SOURCE', '')
+            lbc_source = os.getenv('LBC_SOURCE', anl_source)
+            do_lbc = os.getenv('DO_LBC', 'FALSE').upper() == "TRUE"
+            cominanl = f"{anl_source}/com/{net}/{rrfs_ver}" if anl_source else f"{COMROOT}/{net}/{rrfs_ver}"
             free_fcst_entities += f'\n<!ENTITY COMINanl        "{cominanl}">'
-            free_fcst_envars += '\n<envar><name>COMINanl</name><value>&COMINanl;</value></envar>'
-        free_fcst_entities += f'\n<!ENTITY COMINlbc        "{cominlbc}">'
-        free_fcst_envars += f'\n<envar><name>COMINlbc</name><value>&COMINlbc;</value></envar>'
-        free_fcst_envars += f'\n<envar><name>FREE_FCST_ONLY</name><value>TRUE</value></envar>\n<envar><name>ANL_TYPE</name><value>{anl_type}</value></envar>\n<envar><name>DO_LBC</name><value>{"TRUE" if do_lbc else "FALSE"}</value></envar>'
+            free_fcst_envars += f'\n<envar><name>ANL_TYPE</name><value>{anl_type}</value></envar>\n<envar><name>COMINanl</name><value>&COMINanl;</value></envar>'
+            if not do_lbc and (lbc_source or anl_source):
+                cominlbc = f"{lbc_source}/com/{net}/{rrfs_ver}"
+                free_fcst_entities += f'\n<!ENTITY COMINlbc        "{cominlbc}">'
+                free_fcst_envars += '\n<envar><name>COMINlbc</name><value>&COMINlbc;</value></envar>'
+            if do_lbc:
+                free_fcst_envars += '\n<envar><name>DO_LBC</name><value>TRUE</value></envar>'
 
     #
     text = text + f'''

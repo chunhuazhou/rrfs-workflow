@@ -12,8 +12,7 @@ spinup_mode=${SPINUP_MODE:-0}
 #
 free_fcst=${FREE_FCST_ONLY:-"false"}
 if [[ "${free_fcst^^}" == "TRUE" ]]; then
-  anl_type=${ANL_TYPE:-""}
-  anl_type=${anl_type,,}
+  anl_type=${ANL_TYPE,,}
   if [[ -z "${anl_type}" || "${anl_type}" == "ic" ]]; then
     START_TYPE="cold"
   else
@@ -70,30 +69,12 @@ for index in "${mem_list[@]}"; do # loop through all the members
   if [[ "${START_TYPE}" == "free_fcst" ]]; then
     COMINanl=${COMINanl:-${COMINrrfs}}
     cyc_dir="${COMINanl}/${RUN}.${PDY}/${cyc}"
-    da_anl_type=${anl_type}
-    da_anl_type=${da_anl_type,,}
-    thisfile="undefined"
-
-    if (( 10#${index} == 0 )); then
-      cldana_file="${cyc_dir}/nonvar_cldana/${WGF}/mpasout.${timestr}.nc"
-      var_file="${cyc_dir}/jedivar/${WGF}/mpasout.${timestr}.nc"
+    if [[ "${anl_type}" == *cld* ]]; then
+      thisfile="${cyc_dir}/nonvar_cldana/${WGF}${memdir}/mpasout.${timestr}.nc"
+    elif (( 10#${index} == 0 )); then
+      thisfile="${cyc_dir}/jedivar/${WGF}/mpasout.${timestr}.nc"
     else
-      cldana_file="${cyc_dir}/nonvar_cldana/${WGF}/mem${index}/mpasout.${timestr}.nc"
-      var_file="${cyc_dir}/getkf/${WGF}/mem${index}.nc"
-    fi
-
-    if [[ "${da_anl_type}" == *cld* || "${da_anl_type}" == *cloud* ]]; then
-      thisfile="${cldana_file}"
-    elif [[ "${da_anl_type}" == "jedivar" || "${da_anl_type}" == "getkf" || "${da_anl_type}" == "var" || "${da_anl_type}" == "jedi" ]]; then
-      thisfile="${var_file}"
-    else # auto: prefer nonvar_cldana, then jedivar/getkf
-      if [[ -s "${cldana_file}" ]]; then
-        thisfile="${cldana_file}"
-      elif [[ -s "${var_file}" ]]; then
-        thisfile="${var_file}"
-      else
-        thisfile="${cldana_file}"
-      fi
+      thisfile="${cyc_dir}/getkf/${WGF}/mem${index}.nc"
     fi
 
     if [[ -s "${thisfile}" ]]; then
