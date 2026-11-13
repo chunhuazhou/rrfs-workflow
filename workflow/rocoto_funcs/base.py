@@ -48,7 +48,12 @@ def run_git_command(cmd):
 
 
 def get_anl_type():
+    free_fcst = os.getenv('FREE_FCST_ONLY', 'FALSE').upper() == 'TRUE'
     anl_type = os.getenv('ANL_TYPE', '').lower()
+    if free_fcst:
+        if anl_type and anl_type not in ['auto', 'ic']:
+            return anl_type
+        return 'ic'
     if anl_type and anl_type != 'auto':
         return anl_type
     if os.getenv('DO_NONVAR_CLOUD_ANA', 'FALSE').upper() == 'TRUE':

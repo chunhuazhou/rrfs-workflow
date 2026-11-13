@@ -89,7 +89,7 @@ if os.path.exists(f"{HOMErrfs}/workflow/config.override"):
     shutil.copy(f'{HOMErrfs}/workflow/config.override', f'{expdir}/config.override')  # save a copy for reference
 
 # if DO_JEDI and not free forecast, copy the super YAML, convinfo, satinfo files to EXPDIR
-free_fcst = os.getenv('FREE_FCST_ONLY', os.getenv('FREE_FCST', os.getenv('DO_FREE_FCST', 'FALSE'))).upper() == "TRUE"
+free_fcst = os.getenv('FREE_FCST_ONLY', 'FALSE').upper() == "TRUE"
 if not free_fcst and os.getenv("DO_JEDI", 'false').upper() == "TRUE":
     # copy jedivar/getkf yamls to exp_configdir
     if os.getenv('DO_ENSEMBLE', 'FALSE').upper() == "TRUE":

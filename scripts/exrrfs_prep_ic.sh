@@ -10,11 +10,11 @@ spinup_mode=${SPINUP_MODE:-0}
 #
 # decide if this cycle is cold start or free forecast
 #
-free_fcst=${FREE_FCST_ONLY:-${FREE_FCST:-${DO_FREE_FCST:-"false"}}}
+free_fcst=${FREE_FCST_ONLY:-"false"}
 if [[ "${free_fcst^^}" == "TRUE" ]]; then
-  anl_type=${ANL_TYPE:-${DA_ANL_TYPE:-""}}
+  anl_type=${ANL_TYPE:-""}
   anl_type=${anl_type,,}
-  if [[ "${anl_type}" == "ic" ]]; then
+  if [[ -z "${anl_type}" || "${anl_type}" == "ic" ]]; then
     START_TYPE="cold"
   else
     START_TYPE="free_fcst"
@@ -70,7 +70,7 @@ for index in "${mem_list[@]}"; do # loop through all the members
   if [[ "${START_TYPE}" == "free_fcst" ]]; then
     COMINanl=${COMINanl:-${COMINrrfs}}
     cyc_dir="${COMINanl}/${RUN}.${PDY}/${cyc}"
-    da_anl_type=${ANL_TYPE:-${DA_ANL_TYPE:-"auto"}}
+    da_anl_type=${anl_type}
     da_anl_type=${da_anl_type,,}
     thisfile="undefined"
 

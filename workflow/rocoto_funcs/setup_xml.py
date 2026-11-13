@@ -49,7 +49,7 @@ def setup_xml(HOMErrfs, expdir):
     do_ensemble = os.getenv('DO_ENSEMBLE', 'FALSE').upper()
     do_ensmean_post = os.getenv('DO_ENSMEAN_POST', 'FALSE').upper()
     do_chemistry = os.getenv('DO_CHEMISTRY', 'FALSE').upper()
-    free_fcst = os.getenv('FREE_FCST_ONLY', os.getenv('FREE_FCST', os.getenv('DO_FREE_FCST', 'FALSE'))).upper() == "TRUE"
+    free_fcst = os.getenv('FREE_FCST_ONLY', 'FALSE').upper() == "TRUE"
     anl_type = get_anl_type()
     has_da_anl = (anl_type != 'ic')
     subhourly = int(os.getenv('SUBCYC_INTERVAL') or 0) > 0

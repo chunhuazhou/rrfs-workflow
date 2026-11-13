@@ -20,17 +20,14 @@ export USE_MERRA2=false  # false: default GOCART aerosol climatology; true: MERR
 #
 # ----------------------------------------------------------------------------------------------------
 # Optional: Free Forecast Only (FREE_FCST_ONLY=true)
-# Mode 1 - Free forecast from external IC/LBC (without DA analysis):
+# Mode 1 - Free forecast from IC/LBC (cold start free forecast):
 #   export FREE_FCST_ONLY=true
-#   export DO_JEDI=false
-#   export DO_NONVAR_CLOUD_ANA=false
+#   # ANL_TYPE is not specified (defaults to cold start free forecast from IC/LBC)
 #
 # Mode 2 - Free forecast initialized from saved DA analysis:
 #   export FREE_FCST_ONLY=true
 #   export ANL_SOURCE="/path/to/experiment"   # Directory containing com/rrfs/v...
-#   # Keep DO_JEDI=true and/or DO_NONVAR_CLOUD_ANA=true as specified below.
-#   # ANL_TYPE defaults based on DA settings: nonvar_cldana (if DO_NONVAR_CLOUD_ANA=true) or jedivar (if DO_JEDI=true)
-#   # export ANL_TYPE="auto"                  # "auto", "nonvar_cldana", "jedivar"
+#   export ANL_TYPE="nonvar_cldana"           # DA type: "nonvar_cldana" or "jedivar"
 #   # Optional LBC override if saved LBC files under com/ are not enough for the full forecast length:
 #   # export DO_LBC=true                      # default is false for Mode 2 (uses existing LBCs under ANL_SOURCE/com/)
 # ----------------------------------------------------------------------------------------------------
