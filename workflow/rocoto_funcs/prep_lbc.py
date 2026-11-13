@@ -19,6 +19,16 @@ def prep_lbc(xmlFile, expdir, do_ensemble=False):
         'PREP_LBC_LOOK_BACK_HRS': f'{prep_lbc_look_back_hrs}',
     }
 
+    do_lbc = os.getenv('DO_LBC', os.getenv('DO_IC_LBC', 'TRUE')).upper() == "TRUE"
+    if os.getenv('FREE_FCST_ONLY', 'FALSE').upper() == "TRUE":
+        dcTaskEnv['FREE_FCST_ONLY'] = "TRUE"
+        dcTaskEnv['DO_LBC'] = "TRUE" if do_lbc else "FALSE"
+        lbc_source = os.getenv('LBC_SOURCE', os.getenv('ANL_SOURCE', ''))
+        if not do_lbc and lbc_source:
+            net = os.getenv('NET', 'rrfs').lower()
+            rrfs_ver = os.getenv('rrfs_ver', 'v2.1.4')
+            dcTaskEnv['COMINlbc'] = f"{lbc_source}/com/{net}/{rrfs_ver}"
+
     if not do_ensemble:
         metatask = False
         task_id = f'{meta_id}'

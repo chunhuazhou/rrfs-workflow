@@ -117,25 +117,6 @@ def header_entities(xmlFile, expdir):
             text = text + f'<!ENTITY RESERVATION     "--reservation={reservation}">\n'
     else:
         text = ''
-    free_fcst_entities = ""
-    free_fcst_envars = ""
-    if os.getenv('FREE_FCST_ONLY', 'FALSE').upper() == "TRUE":
-        free_fcst_envars = '\n<envar><name>FREE_FCST_ONLY</name><value>TRUE</value></envar>'
-        anl_type = os.getenv('ANL_TYPE', '').lower()
-        if anl_type and anl_type != 'ic':
-            anl_source = os.getenv('ANL_SOURCE', '')
-            lbc_source = os.getenv('LBC_SOURCE', anl_source)
-            do_lbc = os.getenv('DO_LBC', 'FALSE').upper() == "TRUE"
-            cominanl = f"{anl_source}/com/{net}/{rrfs_ver}" if anl_source else f"{COMROOT}/{net}/{rrfs_ver}"
-            free_fcst_entities += f'\n<!ENTITY COMINanl        "{cominanl}">'
-            free_fcst_envars += f'\n<envar><name>ANL_TYPE</name><value>{anl_type}</value></envar>\n<envar><name>COMINanl</name><value>&COMINanl;</value></envar>'
-            if not do_lbc and (lbc_source or anl_source):
-                cominlbc = f"{lbc_source}/com/{net}/{rrfs_ver}"
-                free_fcst_entities += f'\n<!ENTITY COMINlbc        "{cominlbc}">'
-                free_fcst_envars += '\n<envar><name>COMINlbc</name><value>&COMINlbc;</value></envar>'
-            if do_lbc:
-                free_fcst_envars += '\n<envar><name>DO_LBC</name><value>TRUE</value></envar>'
-
     #
     text = text + f'''
 <!ENTITY MACHINE         "{MACHINE}">
@@ -148,7 +129,7 @@ def header_entities(xmlFile, expdir):
 <!ENTITY RUN             "{run}">
 <!ENTITY NET             "{net}">
 <!ENTITY rrfs_ver        "{rrfs_ver}">
-<!ENTITY WGF             "{wgf}">{free_fcst_entities}
+<!ENTITY WGF             "{wgf}">
 
 <!ENTITY task_common_vars
 "
@@ -168,7 +149,7 @@ def header_entities(xmlFile, expdir):
 <envar><name>MPI_RUN_CMD</name><value>{mpi_run_cmd}</value></envar>
 <envar><name>MESH_NAME</name><value>{mesh_name}</value></envar>
 <envar><name>WGF</name><value>{wgf}</value></envar>
-<envar><name>CYC_INTERVAL</name><value>{cyc_interval}</value></envar>{subcyc_envar}{chem_envar}{free_fcst_envars}
+<envar><name>CYC_INTERVAL</name><value>{cyc_interval}</value></envar>{subcyc_envar}{chem_envar}
 "
 >{entities_for_cycledef}
 '''

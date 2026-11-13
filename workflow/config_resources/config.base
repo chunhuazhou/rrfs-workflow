@@ -49,11 +49,14 @@ if [[ "${FREE_FCST_ONLY^^}" == "TRUE" ]]; then
   export DO_SPINUP=false
   export DO_PYDAMONITOR=false
   if [[ -n "${ANL_TYPE}" && "${ANL_TYPE,,}" != "ic" ]]; then
+    export DO_IC=false
     export DO_LBC=${DO_LBC:-false}
   else
+    export DO_IC=${DO_IC:-true}
     export DO_LBC=${DO_LBC:-${DO_IC_LBC:-true}}
   fi
 else
+  export DO_IC=${DO_IC:-${DO_IC_LBC:-true}}
   export DO_LBC=${DO_LBC:-${DO_IC_LBC:-true}}
 fi
 

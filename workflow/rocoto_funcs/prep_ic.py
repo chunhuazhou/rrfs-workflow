@@ -52,6 +52,18 @@ def prep_ic(xmlFile, expdir, do_ensemble=False, spinup_mode=0):
     if PREP_IC_TYPE == "jedivar" or PREP_IC_TYPE == "getkf":
         dcTaskEnv['USE_THE_LATEST_SATBIAS'] = os.getenv("USE_THE_LATEST_SATBIAS", "FALSE").upper()
 
+    free_fcst = os.getenv('FREE_FCST_ONLY', 'FALSE').upper() == "TRUE"
+    if free_fcst:
+        dcTaskEnv['FREE_FCST_ONLY'] = "TRUE"
+        anl_type = os.getenv('ANL_TYPE', '').lower()
+        if anl_type and anl_type != 'ic':
+            dcTaskEnv['ANL_TYPE'] = anl_type
+            anl_source = os.getenv('ANL_SOURCE', '')
+            if anl_source:
+                net = os.getenv('NET', 'rrfs').lower()
+                rrfs_ver = os.getenv('rrfs_ver', 'v2.1.4')
+                dcTaskEnv['COMINanl'] = f"{anl_source}/com/{net}/{rrfs_ver}"
+
     if "global" in os.getenv("MESH_NAME"):
         dcTaskEnv['cpreq'] = "ln -snf"
     dcTaskEnv['KEEPDATA'] = get_cascade_env(f"KEEPDATA_{task_id}".upper()).upper()
@@ -133,13 +145,17 @@ def prep_ic(xmlFile, expdir, do_ensemble=False, spinup_mode=0):
 
 # overwrite dependencies if free_fcst or no cycling
     anl_type = os.getenv('ANL_TYPE', '').lower()
-    if os.getenv('FREE_FCST_ONLY', 'FALSE').upper() == "TRUE" and anl_type and anl_type != 'ic':
+    if free_fcst and anl_type and anl_type != 'ic':
+        net = os.getenv('NET', 'rrfs').lower()
+        rrfs_ver = os.getenv('rrfs_ver', 'v2.1.4')
+        anl_source = os.getenv('ANL_SOURCE', '')
+        cominanl = f"{anl_source}/com/{net}/{rrfs_ver}" if anl_source else f"&COMROOT;/{net}/{rrfs_ver}"
         if do_ensemble:
-            anl_file = '&COMINanl;/&RUN;.@Y@m@d/@H/getkf/&WGF;/mem001.nc' if anl_type == 'getkf' else \
-                '&COMINanl;/&RUN;.@Y@m@d/@H/nonvar_cldana/&WGF;/mem001/mpasout.@Y-@m-@d_@H.00.00.nc'
+            anl_file = f'{cominanl}/&RUN;.@Y@m@d/@H/getkf/&WGF;/mem001.nc' if anl_type == 'getkf' else \
+                f'{cominanl}/&RUN;.@Y@m@d/@H/nonvar_cldana/&WGF;/mem001/mpasout.@Y-@m-@d_@H.00.00.nc'
         else:
             task = 'jedivar' if anl_type == 'jedivar' else 'nonvar_cldana'
-            anl_file = f'&COMINanl;/&RUN;.@Y@m@d/@H/{task}/&WGF;/mpasout.@Y-@m-@d_@H.00.00.nc'
+            anl_file = f'{cominanl}/&RUN;.@Y@m@d/@H/{task}/&WGF;/mpasout.@Y-@m-@d_@H.00.00.nc'
         dependencies = f'''
   <dependency>
   <and>{timedep}

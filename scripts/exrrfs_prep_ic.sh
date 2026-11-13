@@ -71,7 +71,7 @@ for index in "${mem_list[@]}"; do # loop through all the members
     cyc_dir="${COMINanl}/${RUN}.${PDY}/${cyc}"
     if [[ "${anl_type}" == *cld* ]]; then
       thisfile="${cyc_dir}/nonvar_cldana/${WGF}${memdir}/mpasout.${timestr}.nc"
-    elif (( 10#${index} == 0 )); then
+    elif [[ "${index}" == "000" ]]; then
       thisfile="${cyc_dir}/jedivar/${WGF}/mpasout.${timestr}.nc"
     else
       thisfile="${cyc_dir}/getkf/${WGF}/mem${index}.nc"

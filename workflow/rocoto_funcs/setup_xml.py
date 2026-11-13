@@ -50,8 +50,6 @@ def setup_xml(HOMErrfs, expdir):
     do_ensmean_post = os.getenv('DO_ENSMEAN_POST', 'FALSE').upper()
     do_chemistry = os.getenv('DO_CHEMISTRY', 'FALSE').upper()
     free_fcst = os.getenv('FREE_FCST_ONLY', 'FALSE').upper() == "TRUE"
-    anl_type = os.getenv('ANL_TYPE', '').lower()
-    has_da_anl = bool(anl_type and anl_type != 'ic')
     subhourly = int(os.getenv('SUBCYC_INTERVAL') or 0) > 0
     if subhourly:
         tok_hm = "@H@M"
@@ -98,7 +96,7 @@ def setup_xml(HOMErrfs, expdir):
                     nonvar_bufrobs(xmlFile, expdir)
                     nonvar_reflobs(xmlFile, expdir)
             #
-            do_ic = not (free_fcst and has_da_anl) and os.getenv("DO_IC_LBC", "TRUE").upper() == "TRUE"
+            do_ic = os.getenv("DO_IC", os.getenv("DO_IC_LBC", "TRUE")).upper() == "TRUE"
             do_lbc = os.getenv("DO_LBC", os.getenv("DO_IC_LBC", "TRUE")).upper() == "TRUE" and "global" not in MESH_NAME
             if do_ic:
                 ungrib_ic(xmlFile, expdir)
@@ -180,7 +178,7 @@ def setup_xml(HOMErrfs, expdir):
                 if os.getenv("DO_NONVAR_CLOUD_ANA", "FALSE").upper() == "TRUE":
                     nonvar_bufrobs(xmlFile, expdir)
                     nonvar_reflobs(xmlFile, expdir)
-            do_ic = not (free_fcst and has_da_anl) and os.getenv("DO_IC_LBC", "TRUE").upper() == "TRUE"
+            do_ic = os.getenv("DO_IC", os.getenv("DO_IC_LBC", "TRUE")).upper() == "TRUE"
             do_lbc = os.getenv("DO_LBC", os.getenv("DO_IC_LBC", "TRUE")).upper() == "TRUE" and "global" not in MESH_NAME
             if do_ic:
                 ungrib_ic(xmlFile, expdir, do_ensemble=True)
