@@ -5,6 +5,8 @@ set -x
 
 cpreq=${cpreq:-cpreq}
 prefix=${EXTRN_MDL_SOURCE%_NCO} # remove the trailing '_NCO' if any
+enkf_type=${ENKF_TYPE:-"GETKF"}
+enkf_type=${enkf_type,,}
 cd "${DATA}" || exit 1
 
 start_time=$(date -d "${CDATE:0:8} ${CDATE:8:2}" +%Y-%m-%d_%H:%M:%S)
@@ -30,7 +32,7 @@ mkdir -p obs ens jdiag
 #
 # copy observations files
 #
-if [[ ${GETKF_TYPE} == observer*  ]]; then  # observer or observer_solver
+if [[ "${enkf_type}" == "letkf" || ${GETKF_TYPE} == observer*  ]]; then  # letkf, observer, or observer_solver
   source "${USHrrfs}/copy_obs.sh" "getkf"
 else  # solver or post
   ln -snf "${UMBRELLA_GETKF_OBSERVER_DATA}"/jdiag* jdiag/.
@@ -67,7 +69,7 @@ nsoillevels=${NSOIL_LEVELS:-9}
 jedi_da=true #true
 pio_stride=${PIO_STRIDE:-${PPN}}
 pio_num_iotasks=$(( NODES * PPN / pio_stride ))
-do_sppt=${DO_SPPT:-'false'} 
+do_sppt=${DO_SPPT:-'false'}
 
 # We set dt, substeps, radt values to avoid errors in reading namelist.atmosphere
 # but they will NOT be used since no model integration in DA steps
@@ -81,17 +83,18 @@ ${cpreq} "${PARMrrfs}"/streams.atmosphere.getkf streams.atmosphere
 export ANALYSIS_DATE="${CDATE:0:4}-${CDATE:4:2}-${CDATE:6:2}T${CDATE:8:2}:00:00Z"
 CDATEm2=$(${NDATE} -2 "${CDATE}")
 export BEGIN_DATE="${CDATEm2:0:4}-${CDATEm2:4:2}-${CDATEm2:6:2}T${CDATEm2:8:2}:00:00Z"
+enkf_yaml=${ENKF_YAML:-"${enkf_type}.yaml"}
 #
-# generate getkf.yaml based on how YAML_GEN_METHOD is set
+# generate enkf yaml based on how YAML_GEN_METHOD is set
 case ${YAML_GEN_METHOD:-1} in
   1) # from ${PARMrrfs}
-    cp "${EXPDIR}/config/getkf.yaml" getkf.org.yaml
+    cp "${EXPDIR}/config/${enkf_yaml}" "${enkf_type}.org.yaml"
     cp "${EXPDIR}/config/convinfo" .
     cp "${EXPDIR}/config/satinfo" .
     cp "${USHrrfs}/hifiyaml4rrfs.py" .
     cp "${USHrrfs}/yamltools4rrfs.py" .
     cp "${USHrrfs}/yaml_finalize" .
-    ./yaml_finalize getkf.org.yaml getkf.yaml
+    ./yaml_finalize "${enkf_type}.org.yaml" "${enkf_type}.yaml"
     ;;
   2) # cat together from inside sorc/RDASApp
     source "${USHrrfs}"/yaml_cat_together.sh
@@ -112,13 +115,14 @@ if [[ ${START_TYPE} == "warm" ]] || [[ ${START_TYPE} == "cold" && ${COLDSTART_CY
 
   source prep_step
   ${cpreq} "${EXECrrfs}"/mpasjedi_enkf.x .
-  ${MPI_RUN_CMD} ./mpasjedi_enkf.x getkf.yaml log.out
+  ${MPI_RUN_CMD} ./mpasjedi_enkf.x "${enkf_type}.yaml" log.out
   # check the status
   export err=$?
   err_chk
   #
-  cp "${DATA}"/getkf*.yaml "${COMOUT}/getkf${TYPESTR}/${WGF}"
-  cp "${DATA}"/log.out "${COMOUT}/getkf${TYPESTR}/${WGF}"
+  comoutdir="${COMOUT}/getkf${TYPESTR}/${WGF}"
+  cp "${DATA}/${enkf_type}"*.yaml "${comoutdir}"
+  cp "${DATA}"/log.out "${comoutdir}"
 
   # rename ombg to oman for posterior observer jdiag files
   if [[ "${GETKF_TYPE}" == "post" ]]; then
@@ -130,24 +134,20 @@ if [[ ${START_TYPE} == "warm" ]] || [[ ${START_TYPE} == "cold" && ${COLDSTART_CY
     done
   fi
 
-  # move jdiag* files to the umbrella directory if observer
-  if [[ ${GETKF_TYPE} == observer* || "${GETKF_TYPE}" == "post" ]]; then
-    cp "${DATA}"/jdiag* "${COMOUT}/getkf${TYPESTR}/${WGF}"
+  # move jdiag* files to the umbrella directory if observer or letkf
+  if [[ "${enkf_type}" == "letkf" || ${GETKF_TYPE} == observer* || "${GETKF_TYPE}" == "post" ]]; then
+    cp "${DATA}"/jdiag* "${comoutdir}"
     mv jdiag* "${UMBRELLA_GETKF_DATA}"/.
   fi
-  # move post mean to umbrella if solver
-  if [[ "${GETKF_TYPE}" =~ ^(observer_solver|solver)$ ]]; then
+  # move post mean to umbrella if solver or letkf
+  if [[ "${enkf_type}" == "letkf" || "${GETKF_TYPE}" =~ ^(observer_solver|solver)$ ]]; then
     mv "${DATA}"/data/ens/mem000.nc "${UMBRELLA_GETKF_DATA}"/post_mean.nc
   fi
 
   # Save analysis files if requested
-  if [[ "${GETKF_TYPE}" == "post" && "${SAVE_GETKF_ANL^^}" == "TRUE" ]]; then
+  if [[ "${GETKF_TYPE}" =~ ^(observer_solver|solver)$ && "${SAVE_GETKF_ANL^^}" == "TRUE" ]]; then
     #
-    export CMDFILE="${DATA}/poescript_getkfpost"
-
-    comoutdir=${COMOUT}/getkf_${GETKF_TYPE}/${WGF}
-
-    mkdir -p "${comoutdir}"
+    export CMDFILE="${DATA}/poescript_getkfsave"
 
     for mem in $(seq -w 001 "${ENS_SIZE}"); do
       echo "${cpreq} ${DATA}/data/ens/mem${mem}.nc ${comoutdir}/mem${mem}.nc" >> "${CMDFILE}"
@@ -158,7 +158,7 @@ if [[ ${START_TYPE} == "warm" ]] || [[ ${START_TYPE} == "cold" && ${COLDSTART_CY
     export err=$?
 
     if (( err != 0 )) ; then
-      echo "Error: copying GETKF post files failed with error code ${err} "
+      echo "Error: copying GETKF analysis files failed with error code ${err} "
       err_exit
     fi
 

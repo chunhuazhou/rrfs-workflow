@@ -32,4 +32,5 @@ workflow/tools/downloads/
 parm/observers/main.yaml
 parm/jedivar.yaml
 parm/getkf.yaml
+parm/letkf.yaml
 parm/hofx.yaml

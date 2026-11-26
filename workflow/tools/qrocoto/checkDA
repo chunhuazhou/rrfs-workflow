@@ -176,7 +176,10 @@ elif not dcSatInfo:
 # generate the yaml file on the fly
 #
 if getkf:
-    yfile = f"{expdir}/config/getkf.yaml"
+    if os.path.exists(f"{expdir}/config/letkf.yaml"):
+        yfile = f"{expdir}/config/letkf.yaml"
+    else:
+        yfile = f"{expdir}/config/getkf.yaml"
 else:
     yfile = f"{expdir}/config/jedivar.yaml"
 # determine the output file

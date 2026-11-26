@@ -90,14 +90,26 @@ if os.path.exists(f"{HOMErrfs}/workflow/config.override"):
 
 # if DO_JEDI, copy the super YAML, convinfo, satinfo files to EXPDIR
 if os.getenv("DO_JEDI", 'false').upper() == "TRUE":
-    # copy jedivar/getkf yamls to exp_configdir
+    # copy jedivar/getkf/letkf yamls to exp_configdir
     if os.getenv('DO_ENSEMBLE', 'FALSE').upper() == "TRUE":
-        if os.getenv('GETKF_ONESTEP', 'FALSE').upper() == "TRUE":
-            smart_superyaml(HOMErrfs, 'getkf', mesh, getkf_onestep=True)
-        else:
-            smart_superyaml(HOMErrfs, 'getkf', mesh)
+        enkf_type = os.getenv('ENKF_TYPE', os.getenv('ENS_DA_TYPE', os.getenv('ENKF_SOLVER', 'GETKF'))).upper()
 
-        shutil.copy(f'{HOMErrfs}/parm/getkf.yaml', f'{exp_configdir}/getkf.yaml')
+        if enkf_type == "LETKF":
+            smart_superyaml(HOMErrfs, 'letkf', mesh)
+            shutil.copy(f'{HOMErrfs}/parm/letkf.yaml', f'{exp_configdir}/letkf.yaml')
+            for old_yaml in [f'{exp_configdir}/getkf.yaml', f'{exp_configdir}/LETKF.yaml']:
+                if os.path.exists(old_yaml):
+                    os.remove(old_yaml)
+        else:
+            if os.getenv('GETKF_ONESTEP', 'FALSE').upper() == "TRUE":
+                smart_superyaml(HOMErrfs, 'getkf', mesh, getkf_onestep=True)
+            else:
+                smart_superyaml(HOMErrfs, 'getkf', mesh)
+            shutil.copy(f'{HOMErrfs}/parm/getkf.yaml', f'{exp_configdir}/getkf.yaml')
+            for old_yaml in [f'{exp_configdir}/letkf.yaml', f'{exp_configdir}/LETKF.yaml']:
+                if os.path.exists(old_yaml):
+                    os.remove(old_yaml)
+
         ens_str = "_ens"
     else:
         smart_superyaml(HOMErrfs, 'jedivar', mesh)
